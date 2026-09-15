@@ -1,0 +1,17 @@
+{
+  "name": "lilymedical",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LilyMedical - Sistema de gestión para consultorio de fisiatría",
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "prisma:generate": "npm run prisma:generate --workspace=apps/backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace=apps/backend",
+    "prisma:seed": "npm run prisma:seed --workspace=apps/backend"
+  }
+}

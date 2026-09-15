@@ -1,0 +1,535 @@
+// LilyMedical - Schema de base de datos
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum RolUsuario {
+  MEDICO
+  ADMINISTRATIVO
+  PACIENTE
+}
+
+enum SexoPaciente {
+  MASCULINO
+  FEMENINO
+  OTRO
+}
+
+enum TipoEscala {
+  BARTHEL
+  OSWESTRY
+  GONIOMETRICA
+  EVA
+  FUERZA_MUSCULAR
+  PERSONALIZADA
+}
+
+enum EstadoAsistencia {
+  ASISTIO
+  INASISTIO
+  CANCELO
+}
+
+enum TipoAdjunto {
+  IMAGEN
+  PDF
+  INFORME
+  OTRO
+}
+
+enum EstadoCita {
+  PROGRAMADA
+  CONFIRMADA
+  ATENDIDA
+  CANCELADA
+  NO_ASISTIO
+}
+
+enum EstadoFactura {
+  PENDIENTE
+  PAGADA
+  PARCIAL
+  ANULADA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  SEGURO
+  TRANSFERENCIA
+}
+
+enum TipoMovimientoInsumo {
+  ENTRADA
+  SALIDA
+}
+
+enum AccionLog {
+  VER
+  EDITAR
+  CREAR
+  ELIMINAR
+}
+
+enum TipoReceta {
+  MEDICAMENTO
+  ORDEN_TERAPIA
+}
+
+// ============================================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================================
+
+model Usuario {
+  id           String     @id @default(uuid())
+  nombre       String
+  apellido     String
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  especialidad String? // ej. "Fisiatría", "Terapia Ocupacional" (para MEDICO)
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  citasComoProfesional Cita[]           @relation("ProfesionalCitas")
+  sesionesComoTerapeuta Sesion[]        @relation("TerapeutaSesiones")
+  evaluacionesRealizadas EvaluacionFisiatrica[] @relation("EvaluadorEvaluaciones")
+  bloqueosHorario      BloqueoHorario[]
+  adjuntosSubidos      Adjunto[]        @relation("SubidoPorUsuario")
+  pagosRegistrados     Pago[]           @relation("RegistradoPorUsuario")
+  logsAcceso           LogAcceso[]
+  movimientosInsumo    MovimientoInsumo[]
+  perfilMedico         PerfilMedico?
+  recetasEmitidas      Receta[]         @relation("MedicoRecetas")
+  constanciasEmitidas  ConstanciaMedica[] @relation("MedicoConstancias")
+
+  @@map("usuarios")
+}
+
+// ============================================================
+// ASEGURADORAS / CONVENIOS
+// ============================================================
+
+model Aseguradora {
+  id            String   @id @default(uuid())
+  nombre        String
+  tipoConvenio  String?
+  condiciones   String?
+  contactoNombre String?
+  contactoTelefono String?
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  pacientes Paciente[]
+  tarifas   Tarifa[]
+  facturas  Factura[]
+
+  @@map("aseguradoras")
+}
+
+// ============================================================
+// PACIENTES
+// ============================================================
+
+model Paciente {
+  id                       String        @id @default(uuid())
+  nombres                  String
+  apellidos                String
+  documento                String        @unique
+  fechaNacimiento          DateTime
+  sexo                     SexoPaciente
+  telefono                 String
+  email                    String?
+  direccion                String?
+  aseguradoraId            String?
+  numeroAfiliacion         String?
+  contactoEmergenciaNombre String?
+  contactoEmergenciaTelefono String?
+  activo                   Boolean       @default(true)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  aseguradora     Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  historiaClinica HistoriaClinica?
+  citas           Cita[]
+  facturas        Factura[]
+  logsAcceso      LogAcceso[]
+  recetas         Receta[]
+  constancias     ConstanciaMedica[]
+
+  @@index([documento])
+  @@index([telefono])
+  @@map("pacientes")
+}
+
+// ============================================================
+// HISTORIA CLÍNICA
+// ============================================================
+
+model HistoriaClinica {
+  id                     String   @id @default(uuid())
+  pacienteId             String   @unique
+  motivoConsulta         String?
+  diagnosticoPrincipal   String?
+  codigoCIE10            String?
+  antecedentesMedicos    String?
+  antecedentesQuirurgicos String?
+  antecedentesFamiliares String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  paciente      Paciente                @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  evaluaciones  EvaluacionFisiatrica[]
+  sesiones      Sesion[]
+  adjuntos      Adjunto[]
+  logsAcceso    LogAcceso[]
+  recetas       Receta[]
+  constancias   ConstanciaMedica[]
+
+  @@map("historias_clinicas")
+}
+
+// Evaluaciones fisiátricas: EVA, rangos de movimiento, fuerza muscular,
+// y escalas funcionales configurables (Barthel, Oswestry, etc.)
+model EvaluacionFisiatrica {
+  id                String     @id @default(uuid())
+  historiaClinicaId String
+  evaluadorId       String
+  fecha             DateTime   @default(now())
+  tipoEscala        TipoEscala
+  nombreEscala      String? // usado cuando tipoEscala = PERSONALIZADA
+  datos             Json // estructura flexible por tipo de escala
+  puntajeTotal      Float?
+  observaciones     String?
+  createdAt         DateTime   @default(now())
+
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
+  evaluador       Usuario         @relation("EvaluadorEvaluaciones", fields: [evaluadorId], references: [id])
+
+  @@index([historiaClinicaId])
+  @@map("evaluaciones_fisiatricas")
+}
+
+// Notas de evolución / línea de tiempo del paciente
+model Sesion {
+  id                String           @id @default(uuid())
+  historiaClinicaId String
+  citaId            String?          @unique
+  terapeutaId       String
+  fecha             DateTime         @default(now())
+  notaEvolucion     String
+  tratamientoAplicado String?
+  asistencia        EstadoAsistencia @default(ASISTIO)
+  createdAt         DateTime         @default(now())
+
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
+  terapeuta       Usuario         @relation("TerapeutaSesiones", fields: [terapeutaId], references: [id])
+  cita            Cita?           @relation(fields: [citaId], references: [id])
+  facturaDetalles FacturaDetalle[]
+
+  @@index([historiaClinicaId])
+  @@map("sesiones")
+}
+
+model Adjunto {
+  id                String      @id @default(uuid())
+  historiaClinicaId String
+  tipo              TipoAdjunto
+  nombreArchivo     String
+  rutaArchivo       String
+  descripcion       String?
+  subidoPorId       String
+  createdAt         DateTime    @default(now())
+
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
+  subidoPor       Usuario         @relation("SubidoPorUsuario", fields: [subidoPorId], references: [id])
+
+  @@map("adjuntos")
+}
+
+// ============================================================
+// AGENDA Y CITAS
+// ============================================================
+
+model Cita {
+  id                  String     @id @default(uuid())
+  pacienteId          String
+  profesionalId       String
+  tarifaId            String?
+  fechaHoraInicio      DateTime
+  fechaHoraFin         DateTime
+  estado              EstadoCita @default(PROGRAMADA)
+  esRecurrente         Boolean    @default(false)
+  grupoRecurrenciaId   String? // agrupa un paquete de sesiones (ej. 10 sesiones)
+  numeroSesionEnGrupo  Int?
+  totalSesionesGrupo   Int?
+  notas                String?
+  recordatorioEnviado  Boolean    @default(false)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  paciente    Paciente @relation(fields: [pacienteId], references: [id])
+  profesional Usuario  @relation("ProfesionalCitas", fields: [profesionalId], references: [id])
+  tarifa      Tarifa?  @relation(fields: [tarifaId], references: [id])
+  sesion      Sesion?
+  facturaDetalles FacturaDetalle[]
+
+  @@index([profesionalId, fechaHoraInicio])
+  @@index([pacienteId])
+  @@index([grupoRecurrenciaId])
+  @@map("citas")
+}
+
+model BloqueoHorario {
+  id                String   @id @default(uuid())
+  profesionalId     String
+  fechaHoraInicio   DateTime
+  fechaHoraFin      DateTime
+  motivo            String?
+  createdAt         DateTime @default(now())
+
+  profesional Usuario @relation(fields: [profesionalId], references: [id])
+
+  @@index([profesionalId, fechaHoraInicio])
+  @@map("bloqueos_horario")
+}
+
+// ============================================================
+// FACTURACIÓN Y PAGOS
+// ============================================================
+
+model Tarifa {
+  id             String       @id @default(uuid())
+  nombreServicio String // Consulta, Terapia Física, Terapia Ocupacional...
+  descripcion    String?
+  precio         Decimal      @db.Decimal(10, 2)
+  aseguradoraId  String? // si es una tarifa especial de convenio
+  activo         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  aseguradora     Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  citas           Cita[]
+  facturaDetalles FacturaDetalle[]
+
+  @@map("tarifas")
+}
+
+model Factura {
+  id             String        @id @default(uuid())
+  numeroFactura  String        @unique
+  pacienteId     String
+  aseguradoraId  String?
+  fecha          DateTime      @default(now())
+  subtotal       Decimal       @db.Decimal(10, 2)
+  impuestos      Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  estado         EstadoFactura @default(PENDIENTE)
+  notas          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  paciente    Paciente         @relation(fields: [pacienteId], references: [id])
+  aseguradora Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  detalles    FacturaDetalle[]
+  pagos       Pago[]
+
+  @@index([pacienteId])
+  @@index([estado])
+  @@map("facturas")
+}
+
+model FacturaDetalle {
+  id             String   @id @default(uuid())
+  facturaId      String
+  tarifaId       String
+  citaId         String?
+  sesionId       String?
+  descripcion    String?
+  cantidad       Int      @default(1)
+  precioUnitario Decimal  @db.Decimal(10, 2)
+  subtotal       Decimal  @db.Decimal(10, 2)
+
+  factura Factura @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  tarifa  Tarifa  @relation(fields: [tarifaId], references: [id])
+  cita    Cita?   @relation(fields: [citaId], references: [id])
+  sesion  Sesion? @relation(fields: [sesionId], references: [id])
+
+  @@map("factura_detalles")
+}
+
+model Pago {
+  id             String     @id @default(uuid())
+  facturaId      String
+  monto          Decimal    @db.Decimal(10, 2)
+  metodoPago     MetodoPago
+  fecha          DateTime   @default(now())
+  referencia     String?
+  registradoPorId String
+  createdAt      DateTime   @default(now())
+
+  factura       Factura @relation(fields: [facturaId], references: [id])
+  registradoPor Usuario @relation("RegistradoPorUsuario", fields: [registradoPorId], references: [id])
+
+  @@index([facturaId])
+  @@map("pagos")
+}
+
+// ============================================================
+// INVENTARIO BÁSICO
+// ============================================================
+
+model Insumo {
+  id            String   @id @default(uuid())
+  nombre        String
+  categoria     String?
+  stockActual   Int      @default(0)
+  stockMinimo   Int      @default(0)
+  unidadMedida  String? // unidades, cajas, rollos...
+  activo        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  movimientos MovimientoInsumo[]
+
+  @@map("insumos")
+}
+
+model MovimientoInsumo {
+  id          String                @id @default(uuid())
+  insumoId    String
+  tipo        TipoMovimientoInsumo
+  cantidad    Int
+  motivo      String?
+  registradoPorId String
+  fecha       DateTime              @default(now())
+
+  insumo        Insumo  @relation(fields: [insumoId], references: [id])
+  registradoPor Usuario @relation(fields: [registradoPorId], references: [id])
+
+  @@map("movimientos_insumo")
+}
+
+// ============================================================
+// AUDITORÍA / PRIVACIDAD
+// ============================================================
+
+model LogAcceso {
+  id                String    @id @default(uuid())
+  usuarioId         String
+  pacienteId        String?
+  historiaClinicaId String?
+  accion            AccionLog
+  detalle           String?
+  ip                String?
+  fecha             DateTime  @default(now())
+
+  usuario         Usuario          @relation(fields: [usuarioId], references: [id])
+  paciente        Paciente?        @relation(fields: [pacienteId], references: [id])
+  historiaClinica HistoriaClinica? @relation(fields: [historiaClinicaId], references: [id])
+
+  @@index([pacienteId])
+  @@index([usuarioId])
+  @@map("logs_acceso")
+}
+
+// ============================================================
+// RECETARIO Y DOCUMENTOS CLÍNICOS IMPRIMIBLES
+// ============================================================
+
+// Configuración de membrete/firma de cada médico, usada al generar PDFs
+model PerfilMedico {
+  id                    String   @id @default(uuid())
+  usuarioId             String   @unique
+  colegiatura           String? // N° MPPS
+  cma                   String? // N° de Colegio de Médicos del estado
+  rif                   String?
+  instagram             String? // ej. "@dra.fisya"
+  tituloProfesional     String? // ej. "Médico Fisiatra"
+  nombreConsultorio     String   @default("LilyMedical")
+  direccionConsultorio  String?
+  telefonoConsultorio   String?
+  firmaUrl              String? // ruta del archivo de imagen de firma
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("perfiles_medico")
+}
+
+model Receta {
+  id                    String     @id @default(uuid())
+  numeroReceta          String     @unique
+  pacienteId            String
+  historiaClinicaId     String
+  medicoId              String
+  tipo                  TipoReceta
+  diagnostico           String?
+  indicacionesGenerales String?
+  codigoVerificacion    String     @unique @default(uuid())
+  fecha                 DateTime   @default(now())
+  createdAt             DateTime   @default(now())
+
+  paciente        Paciente        @relation(fields: [pacienteId], references: [id])
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id])
+  medico          Usuario         @relation("MedicoRecetas", fields: [medicoId], references: [id])
+  items           ItemReceta[]
+
+  @@index([pacienteId])
+  @@map("recetas")
+}
+
+// Ítem de una receta: campos de medicamento o de orden de terapia,
+// según el `tipo` de la receta a la que pertenece
+model ItemReceta {
+  id            String  @id @default(uuid())
+  recetaId      String
+  orden         Int     @default(0)
+  // Campos para tipo MEDICAMENTO
+  medicamento   String?
+  presentacion  String?
+  dosis         String?
+  frecuencia    String?
+  duracion      String?
+  // Campos para tipo ORDEN_TERAPIA
+  tipoTerapia   String?
+  sesiones      Int?
+  observaciones String?
+
+  receta Receta @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+
+  @@map("items_receta")
+}
+
+model ConstanciaMedica {
+  id                 String    @id @default(uuid())
+  numeroConstancia   String    @unique
+  pacienteId         String
+  historiaClinicaId  String
+  medicoId           String
+  diagnostico        String?
+  codigoCIE10        String?
+  diasReposo         Int?
+  fechaInicioReposo  DateTime?
+  fechaFinReposo     DateTime?
+  motivo             String
+  codigoVerificacion String    @unique @default(uuid())
+  fecha              DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+
+  paciente        Paciente        @relation(fields: [pacienteId], references: [id])
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id])
+  medico          Usuario         @relation("MedicoConstancias", fields: [medicoId], references: [id])
+
+  @@index([pacienteId])
+  @@map("constancias_medicas")
+}
