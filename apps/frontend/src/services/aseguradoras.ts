@@ -10,3 +10,15 @@ export async function crearAseguradora(payload: Partial<Aseguradora>): Promise<A
   const { data } = await api.post<Aseguradora>("/aseguradoras", payload);
   return data;
 }
+
+export async function actualizarAseguradora(
+  id: string,
+  payload: Partial<Aseguradora>
+): Promise<Aseguradora> {
+  const { data } = await api.put<Aseguradora>(`/aseguradoras/${id}`, payload);
+  return data;
+}
+
+export async function eliminarAseguradora(id: string): Promise<void> {
+  await api.delete(`/aseguradoras/${id}`);
+}

@@ -93,7 +93,11 @@ export function PacientesListPage() {
                     <td className="px-4 py-3 text-slate-600">{p.documento}</td>
                     <td className="px-4 py-3 text-slate-600">{calcularEdad(p.fechaNacimiento)} años</td>
                     <td className="px-4 py-3 text-slate-600">{p.telefono}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.aseguradora?.nombre ?? "Particular"}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {p.aseguradoras?.find((a) => a.esPrimaria)?.aseguradora?.nombre ??
+                        p.aseguradoras?.[0]?.aseguradora?.nombre ??
+                        "Particular"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

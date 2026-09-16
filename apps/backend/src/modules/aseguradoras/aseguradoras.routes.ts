@@ -1,18 +1,10 @@
 import { Router } from "express";
-import { z } from "zod";
 import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
 import { validateBody } from "../../middleware/validate";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
-
-const aseguradoraSchema = z.object({
-  nombre: z.string().min(1),
-  tipoConvenio: z.string().optional(),
-  condiciones: z.string().optional(),
-  contactoNombre: z.string().optional(),
-  contactoTelefono: z.string().optional(),
-});
+import { aseguradoraSchema } from "./aseguradoras.schema";
 
 const router = Router();
 

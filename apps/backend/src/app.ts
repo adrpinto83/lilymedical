@@ -12,6 +12,7 @@ import sesionesRoutes from "./modules/sesiones/sesiones.routes";
 import citasRoutes from "./modules/citas/citas.routes";
 import facturacionRoutes from "./modules/facturacion/facturacion.routes";
 import aseguradorasRoutes from "./modules/aseguradoras/aseguradoras.routes";
+import autorizacionesRoutes from "./modules/autorizaciones/autorizaciones.routes";
 import inventarioRoutes from "./modules/inventario/inventario.routes";
 import reportesRoutes from "./modules/reportes/reportes.routes";
 import adjuntosRoutes from "./modules/adjuntos/adjuntos.routes";
@@ -51,6 +52,7 @@ export function createApp() {
   app.use("/api/citas", citasRoutes);
   app.use("/api/facturacion", facturacionRoutes);
   app.use("/api/aseguradoras", aseguradorasRoutes);
+  app.use("/api/autorizaciones", autorizacionesRoutes);
   app.use("/api/inventario", inventarioRoutes);
   app.use("/api/reportes", reportesRoutes);
   app.use("/api/adjuntos", adjuntosRoutes);

@@ -75,7 +75,7 @@ export async function crearFactura(data: CrearFacturaInput) {
 }
 
 export async function listarFacturas(pacienteId?: string, estado?: string) {
-  return prisma.factura.findMany({
+  const facturas = await prisma.factura.findMany({
     where: {
       pacienteId,
       estado: estado ? (estado as any) : undefined,
@@ -83,9 +83,29 @@ export async function listarFacturas(pacienteId?: string, estado?: string) {
     orderBy: { fecha: "desc" },
     include: {
       paciente: { select: { nombres: true, apellidos: true, documento: true } },
+      aseguradora: true,
       pagos: true,
     },
   });
+  return facturas.map((f) => ({ ...f, ...calcularSplitFactura(f) }));
+}
+
+// Si la aseguradora tiene un % de cobertura configurado, calcula cuánto le
+// corresponde a ella y cuánto queda a cargo del paciente. Sin % configurado,
+// se asume que la aseguradora cubre el 100% (comportamiento previo).
+export function calcularSplitFactura(factura: {
+  total: Prisma.Decimal;
+  aseguradora?: { porcentajeCobertura: number | null } | null;
+}) {
+  if (!factura.aseguradora) {
+    return { montoAseguradora: null, montoPaciente: factura.total };
+  }
+  const pct = factura.aseguradora.porcentajeCobertura;
+  if (pct === null || pct === undefined) {
+    return { montoAseguradora: factura.total, montoPaciente: new Prisma.Decimal(0) };
+  }
+  const montoAseguradora = factura.total.mul(pct).div(100);
+  return { montoAseguradora, montoPaciente: factura.total.sub(montoAseguradora) };
 }
 
 export async function obtenerFactura(id: string) {
@@ -99,7 +119,7 @@ export async function obtenerFactura(id: string) {
     },
   });
   if (!factura) throw new HttpError(404, "Factura no encontrada");
-  return factura;
+  return { ...factura, ...calcularSplitFactura(factura) };
 }
 
 export async function anularFactura(id: string) {

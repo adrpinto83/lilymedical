@@ -9,6 +9,7 @@ import { getErrorMessage } from "../../services/api";
 import { FacturaFormModal } from "./FacturaFormModal";
 import { PagoModal } from "./PagoModal";
 import { TarifasPanel } from "./TarifasPanel";
+import { AseguradorasPanel } from "./AseguradorasPanel";
 import { format } from "date-fns";
 
 const estadoColor: Record<EstadoFactura, "amber" | "green" | "blue" | "red"> = {
@@ -67,6 +68,7 @@ export function FacturacionPage() {
                   <th className="px-4 py-3">Paciente</th>
                   <th className="px-4 py-3">Fecha</th>
                   <th className="px-4 py-3">Total</th>
+                  <th className="px-4 py-3">Aseguradora</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -80,6 +82,15 @@ export function FacturacionPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{format(new Date(f.fecha), "dd/MM/yyyy")}</td>
                     <td className="px-4 py-3 text-slate-600">${f.total}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {f.aseguradora ? (
+                        <span title={`Aseguradora: $${f.montoAseguradora ?? "0"} · Paciente: $${f.montoPaciente ?? f.total}`}>
+                          {f.aseguradora.nombre}
+                        </span>
+                      ) : (
+                        "Particular"
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <Badge color={estadoColor[f.estado]}>{f.estado}</Badge>
                     </td>
@@ -99,6 +110,8 @@ export function FacturacionPage() {
       </Card>
 
       <TarifasPanel />
+
+      <AseguradorasPanel />
 
       <FacturaFormModal open={modalOpen} onClose={() => setModalOpen(false)} onCreated={cargar} />
       <PagoModal factura={facturaPago} onClose={() => setFacturaPago(null)} onRegistrado={cargar} />

@@ -6,7 +6,8 @@ import {
   reporteIngresos,
   reportePacientesNuevos,
   reporteServiciosMasSolicitados,
-  urlExportIngresosCsv,
+  descargarIngresosCsv,
+  descargarCobrosAseguradoraCsv,
 } from "../../services/reportes";
 import { getErrorMessage } from "../../services/api";
 import { format, startOfMonth } from "date-fns";
@@ -25,6 +26,7 @@ export function ReportesPage() {
   const [servicios, setServicios] = useState<ServicioResumen[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exportando, setExportando] = useState<"ingresos" | "cobros" | null>(null);
 
   async function generar() {
     setLoading(true);
@@ -47,6 +49,24 @@ export function ReportesPage() {
     }
   }
 
+  async function exportarCsv(tipo: "ingresos" | "cobros") {
+    setExportando(tipo);
+    setError(null);
+    try {
+      const d = new Date(desde);
+      const h = new Date(`${hasta}T23:59:59`);
+      if (tipo === "ingresos") {
+        await descargarIngresosCsv(d, h);
+      } else {
+        await descargarCobrosAseguradoraCsv(d, h);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setExportando(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-slate-900">Reportes y estadísticas</h1>
@@ -58,11 +78,12 @@ export function ReportesPage() {
           <Button onClick={generar} disabled={loading}>
             {loading ? "Generando..." : "Generar reporte"}
           </Button>
-          <a href={urlExportIngresosCsv(new Date(desde), new Date(`${hasta}T23:59:59`))} target="_blank" rel="noreferrer">
-            <Button type="button" variant="secondary">
-              Exportar ingresos (CSV)
-            </Button>
-          </a>
+          <Button type="button" variant="secondary" disabled={exportando !== null} onClick={() => exportarCsv("ingresos")}>
+            {exportando === "ingresos" ? "Exportando..." : "Exportar ingresos (CSV)"}
+          </Button>
+          <Button type="button" variant="secondary" disabled={exportando !== null} onClick={() => exportarCsv("cobros")}>
+            {exportando === "cobros" ? "Exportando..." : "Exportar cobros a aseguradora (CSV)"}
+          </Button>
         </CardBody>
       </Card>
 

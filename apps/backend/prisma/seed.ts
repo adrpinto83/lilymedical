@@ -75,6 +75,51 @@ async function main() {
     }
   }
 
+  // Convenios/HCM comunes en Venezuela. Los porcentajes y condiciones son
+  // valores de partida editables desde Facturación → Aseguradoras; ajustar
+  // según el convenio real vigente con cada uno.
+  const aseguradorasBase = [
+    {
+      nombre: "PDVSA - HCM",
+      tipoConvenio: "HCM corporativo",
+      requiereAutorizacion: true,
+      porcentajeCobertura: 100,
+      condiciones: "Requiere autorización previa por sesión/paquete. Verificar vigencia de póliza del trabajador o carga familiar.",
+    },
+    {
+      nombre: "Sicoprosa",
+      tipoConvenio: "HCM / convenio de caja de ahorro",
+      requiereAutorizacion: true,
+      porcentajeCobertura: 80,
+      condiciones: "Requiere autorización previa. Copago a cargo del paciente.",
+    },
+    {
+      nombre: "Mercantil Seguros",
+      tipoConvenio: "HCM",
+      requiereAutorizacion: true,
+      porcentajeCobertura: 80,
+    },
+    {
+      nombre: "Seguros La Previsora",
+      tipoConvenio: "HCM",
+      requiereAutorizacion: true,
+      porcentajeCobertura: 80,
+    },
+    {
+      nombre: "MAPFRE Seguros",
+      tipoConvenio: "HCM",
+      requiereAutorizacion: true,
+      porcentajeCobertura: 80,
+    },
+  ];
+
+  for (const aseguradora of aseguradorasBase) {
+    const existente = await prisma.aseguradora.findFirst({ where: { nombre: aseguradora.nombre } });
+    if (!existente) {
+      await prisma.aseguradora.create({ data: aseguradora });
+    }
+  }
+
   console.log("Seed completado.");
   console.log(`Usuario médico: liliafiguera@gmail.com / Lily2024! (cambiar en producción)`);
   console.log(`Usuario administrativo: admin@lilymedical.com / Lily2024!`);

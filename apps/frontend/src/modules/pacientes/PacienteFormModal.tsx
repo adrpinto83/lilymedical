@@ -2,9 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { Modal } from "../../components/ui/Modal";
 import { Input, Select } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
-import { Paciente, Aseguradora } from "../../types";
+import { Paciente } from "../../types";
 import { crearPaciente, actualizarPaciente } from "../../services/pacientes";
-import { listarAseguradoras } from "../../services/aseguradoras";
 import { getErrorMessage } from "../../services/api";
 
 interface Props {
@@ -23,23 +22,14 @@ const emptyForm = {
   telefono: "",
   email: "",
   direccion: "",
-  aseguradoraId: "",
-  numeroAfiliacion: "",
   contactoEmergenciaNombre: "",
   contactoEmergenciaTelefono: "",
 };
 
 export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
   const [form, setForm] = useState(emptyForm);
-  const [aseguradoras, setAseguradoras] = useState<Aseguradora[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      listarAseguradoras().then(setAseguradoras).catch(() => setAseguradoras([]));
-    }
-  }, [open]);
 
   useEffect(() => {
     if (paciente) {
@@ -52,8 +42,6 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
         telefono: paciente.telefono,
         email: paciente.email ?? "",
         direccion: paciente.direccion ?? "",
-        aseguradoraId: paciente.aseguradoraId ?? "",
-        numeroAfiliacion: paciente.numeroAfiliacion ?? "",
         contactoEmergenciaNombre: paciente.contactoEmergenciaNombre ?? "",
         contactoEmergenciaTelefono: paciente.contactoEmergenciaTelefono ?? "",
       });
@@ -74,7 +62,6 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
     try {
       const payload = {
         ...form,
-        aseguradoraId: form.aseguradoraId || undefined,
         email: form.email || undefined,
       };
       const saved = paciente
@@ -110,23 +97,6 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
         <Input label="Teléfono" required value={form.telefono} onChange={(e) => update("telefono", e.target.value)} />
         <Input label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
         <Input label="Dirección" value={form.direccion} onChange={(e) => update("direccion", e.target.value)} />
-        <Select
-          label="Aseguradora"
-          value={form.aseguradoraId}
-          onChange={(e) => update("aseguradoraId", e.target.value)}
-        >
-          <option value="">Particular / sin seguro</option>
-          {aseguradoras.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.nombre}
-            </option>
-          ))}
-        </Select>
-        <Input
-          label="N° de afiliación"
-          value={form.numeroAfiliacion}
-          onChange={(e) => update("numeroAfiliacion", e.target.value)}
-        />
         <Input
           label="Contacto de emergencia"
           value={form.contactoEmergenciaNombre}
@@ -137,6 +107,12 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
           value={form.contactoEmergenciaTelefono}
           onChange={(e) => update("contactoEmergenciaTelefono", e.target.value)}
         />
+
+        {!paciente && (
+          <p className="text-xs text-slate-500 sm:col-span-2">
+            Las aseguradoras del paciente se agregan luego de guardarlo, desde la pestaña "Seguros" de su ficha.
+          </p>
+        )}
 
         {error && <p className="sm:col-span-2 text-sm text-red-600">{error}</p>}
 

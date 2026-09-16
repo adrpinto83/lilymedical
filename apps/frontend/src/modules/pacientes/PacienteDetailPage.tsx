@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import clsx from "clsx";
 import { Card, CardBody } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { Badge } from "../../components/ui/Badge";
 import { Paciente } from "../../types";
 import { obtenerPaciente } from "../../services/pacientes";
 import { useAuth } from "../../context/AuthContext";
@@ -11,10 +10,12 @@ import { PacienteFormModal } from "./PacienteFormModal";
 import { HistoriaClinicaPanel } from "./HistoriaClinicaPanel";
 import { EstadoCuentaPanel } from "./EstadoCuentaPanel";
 import { AdjuntosPanel } from "./AdjuntosPanel";
+import { PacienteAseguradorasPanel } from "./PacienteAseguradorasPanel";
+import { AutorizacionesPanel } from "./AutorizacionesPanel";
 import { DocumentosPanel } from "../documentos/DocumentosPanel";
 import { format } from "date-fns";
 
-type Tab = "datos" | "clinico" | "estudios" | "documentos" | "facturacion";
+type Tab = "datos" | "clinico" | "estudios" | "documentos" | "seguros" | "facturacion";
 
 export function PacienteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +37,7 @@ export function PacienteDetailPage() {
     ...(puedeVerClinico ? [{ key: "clinico" as Tab, label: "Historia clínica" }] : []),
     ...(puedeVerClinico ? [{ key: "estudios" as Tab, label: "Imágenes y estudios" }] : []),
     ...(puedeVerClinico ? [{ key: "documentos" as Tab, label: "Documentos" }] : []),
+    { key: "seguros", label: "Seguros" },
     { key: "facturacion", label: "Facturación" },
   ];
 
@@ -92,19 +94,6 @@ export function PacienteDetailPage() {
                 <dd className="text-slate-900">{paciente.direccion || "—"}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">Aseguradora</dt>
-                <dd className="text-slate-900">
-                  {paciente.aseguradora ? (
-                    <>
-                      {paciente.aseguradora.nombre}{" "}
-                      {paciente.numeroAfiliacion && <Badge color="blue">{paciente.numeroAfiliacion}</Badge>}
-                    </>
-                  ) : (
-                    "Particular"
-                  )}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-slate-500">Contacto de emergencia</dt>
                 <dd className="text-slate-900">
                   {paciente.contactoEmergenciaNombre || "—"}{" "}
@@ -121,6 +110,13 @@ export function PacienteDetailPage() {
       {tab === "estudios" && puedeVerClinico && <AdjuntosPanel pacienteId={id} />}
 
       {tab === "documentos" && puedeVerClinico && <DocumentosPanel pacienteId={id} />}
+
+      {tab === "seguros" && (
+        <div className="flex flex-col gap-6">
+          <PacienteAseguradorasPanel pacienteId={id} />
+          <AutorizacionesPanel pacienteId={id} />
+        </div>
+      )}
 
       {tab === "facturacion" && <EstadoCuentaPanel pacienteId={id} />}
 

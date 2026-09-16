@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { calcularSplitFactura } from "../facturacion/facturacion.service";
 
 function inicioFin(fecha: Date) {
   const inicio = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
@@ -86,4 +87,27 @@ export async function reporteServiciosMasSolicitados(desde: Date, hasta: Date) {
   }
 
   return Array.from(conteo.values()).sort((a, b) => b.cantidad - a.cantidad);
+}
+
+// Facturas cobradas (total o parcialmente) a una aseguradora en un período,
+// con el split paciente/aseguradora aplicado — insumo para el cobro/reclamo
+// que se envía al convenio (PDVSA-HCM, Sicoprosa, etc.).
+export async function reporteCobrosAseguradora(desde: Date, hasta: Date, aseguradoraId?: string) {
+  const facturas = await prisma.factura.findMany({
+    where: {
+      fecha: { gte: desde, lte: hasta },
+      estado: { not: "ANULADA" },
+      aseguradoraId: aseguradoraId ?? { not: null },
+    },
+    include: {
+      paciente: { select: { nombres: true, apellidos: true, documento: true } },
+      aseguradora: true,
+    },
+    orderBy: [{ aseguradoraId: "asc" }, { fecha: "asc" }],
+  });
+
+  return facturas.map((f) => ({
+    ...f,
+    ...calcularSplitFactura(f),
+  }));
 }

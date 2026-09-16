@@ -121,20 +121,53 @@ model Usuario {
 // ============================================================
 
 model Aseguradora {
-  id            String   @id @default(uuid())
-  nombre        String
-  tipoConvenio  String?
-  condiciones   String?
-  contactoNombre String?
-  contactoTelefono String?
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id                   String   @id @default(uuid())
+  nombre               String
+  tipoConvenio         String?
+  condiciones          String?
+  contactoNombre       String?
+  contactoTelefono     String?
+  // % que cubre la aseguradora por servicio (el resto queda a cargo del paciente).
+  // Si es null, la factura se cobra completa a quien se le facture (sin split automático).
+  porcentajeCobertura  Float?
+  requiereAutorizacion Boolean  @default(false)
+  topeMontoPorSesion   Decimal? @db.Decimal(10, 2)
+  activo               Boolean  @default(true)
+  createdAt            DateTime @default(now())
 
-  pacientes Paciente[]
-  tarifas   Tarifa[]
-  facturas  Factura[]
+  pacientes     PacienteAseguradora[]
+  tarifas       Tarifa[]
+  facturas      Factura[]
+  autorizaciones AutorizacionSeguro[]
 
   @@map("aseguradoras")
+}
+
+enum EstadoAutorizacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+// Control de pre-autorizaciones que exigen las HCM/convenios (PDVSA, Sicoprosa,
+// etc.) antes de atender un paquete de sesiones o un procedimiento.
+model AutorizacionSeguro {
+  id                  String             @id @default(uuid())
+  pacienteId          String
+  aseguradoraId       String
+  numeroAutorizacion  String?
+  sesionesAutorizadas Int?
+  estado              EstadoAutorizacion @default(PENDIENTE)
+  fechaSolicitud      DateTime           @default(now())
+  vigenciaHasta       DateTime?
+  notas               String?
+  createdAt           DateTime           @default(now())
+
+  paciente    Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  aseguradora Aseguradora @relation(fields: [aseguradoraId], references: [id])
+
+  @@index([pacienteId])
+  @@map("autorizaciones_seguro")
 }
 
 // ============================================================
@@ -151,15 +184,14 @@ model Paciente {
   telefono                 String
   email                    String?
   direccion                String?
-  aseguradoraId            String?
-  numeroAfiliacion         String?
   contactoEmergenciaNombre String?
   contactoEmergenciaTelefono String?
   activo                   Boolean       @default(true)
   createdAt                DateTime      @default(now())
   updatedAt                DateTime      @updatedAt
 
-  aseguradora     Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  aseguradoras    PacienteAseguradora[]
+  autorizacionesSeguro AutorizacionSeguro[]
   historiaClinica HistoriaClinica?
   citas           Cita[]
   facturas        Factura[]
@@ -170,6 +202,26 @@ model Paciente {
   @@index([documento])
   @@index([telefono])
   @@map("pacientes")
+}
+
+// Relación paciente-aseguradora: permite seguro primario + secundario, cada
+// uno con su propio número de afiliación (ej. HCM de PDVSA como primario y
+// Sicoprosa como secundario).
+model PacienteAseguradora {
+  id               String   @id @default(uuid())
+  pacienteId       String
+  aseguradoraId    String
+  numeroAfiliacion String?
+  esPrimaria       Boolean  @default(true)
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  paciente    Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  aseguradora Aseguradora @relation(fields: [aseguradoraId], references: [id])
+
+  @@unique([pacienteId, aseguradoraId])
+  @@index([pacienteId])
+  @@map("paciente_aseguradoras")
 }
 
 // ============================================================

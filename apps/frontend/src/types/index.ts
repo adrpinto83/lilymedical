@@ -27,7 +27,34 @@ export interface Aseguradora {
   condiciones?: string | null;
   contactoNombre?: string | null;
   contactoTelefono?: string | null;
+  porcentajeCobertura?: number | null;
+  requiereAutorizacion: boolean;
+  topeMontoPorSesion?: string | null;
   activo: boolean;
+}
+
+export interface PacienteAseguradora {
+  id: string;
+  pacienteId: string;
+  aseguradoraId: string;
+  numeroAfiliacion?: string | null;
+  esPrimaria: boolean;
+  aseguradora?: Aseguradora;
+}
+
+export type EstadoAutorizacion = "PENDIENTE" | "APROBADA" | "RECHAZADA";
+
+export interface AutorizacionSeguro {
+  id: string;
+  pacienteId: string;
+  aseguradoraId: string;
+  numeroAutorizacion?: string | null;
+  sesionesAutorizadas?: number | null;
+  estado: EstadoAutorizacion;
+  fechaSolicitud: string;
+  vigenciaHasta?: string | null;
+  notas?: string | null;
+  aseguradora?: Aseguradora;
 }
 
 export interface Paciente {
@@ -40,9 +67,7 @@ export interface Paciente {
   telefono: string;
   email?: string | null;
   direccion?: string | null;
-  aseguradoraId?: string | null;
-  aseguradora?: Aseguradora | null;
-  numeroAfiliacion?: string | null;
+  aseguradoras?: PacienteAseguradora[];
   contactoEmergenciaNombre?: string | null;
   contactoEmergenciaTelefono?: string | null;
   activo: boolean;
@@ -146,6 +171,8 @@ export interface Factura {
   numeroFactura: string;
   pacienteId: string;
   paciente?: { nombres: string; apellidos: string; documento: string };
+  aseguradoraId?: string | null;
+  aseguradora?: Aseguradora | null;
   fecha: string;
   subtotal: string;
   impuestos: string;
@@ -154,6 +181,8 @@ export interface Factura {
   notas?: string | null;
   detalles?: FacturaDetalle[];
   pagos?: Pago[];
+  montoAseguradora?: string | null;
+  montoPaciente?: string;
 }
 
 export interface Pago {

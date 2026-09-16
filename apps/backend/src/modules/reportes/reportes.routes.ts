@@ -51,4 +51,32 @@ router.get("/servicios-mas-solicitados", roleGuard("MEDICO", "ADMINISTRATIVO"), 
   res.json(await reportesService.reporteServiciosMasSolicitados(desde, hasta));
 });
 
+router.get("/cobros-aseguradora", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+  const { desde, hasta } = parseRango(req);
+  const aseguradoraId = typeof req.query.aseguradoraId === "string" ? req.query.aseguradoraId : undefined;
+  res.json(await reportesService.reporteCobrosAseguradora(desde, hasta, aseguradoraId));
+});
+
+router.get("/cobros-aseguradora.csv", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+  const { desde, hasta } = parseRango(req);
+  const aseguradoraId = typeof req.query.aseguradoraId === "string" ? req.query.aseguradoraId : undefined;
+  const facturas = await reportesService.reporteCobrosAseguradora(desde, hasta, aseguradoraId);
+  const csv = toCsv(
+    facturas.map((f) => ({
+      fecha: f.fecha.toISOString(),
+      factura: f.numeroFactura,
+      paciente: `${f.paciente.apellidos}, ${f.paciente.nombres}`,
+      documento: f.paciente.documento,
+      aseguradora: f.aseguradora?.nombre ?? "",
+      total: f.total.toString(),
+      montoAseguradora: f.montoAseguradora?.toString() ?? "",
+      montoPaciente: f.montoPaciente.toString(),
+      estado: f.estado,
+    }))
+  );
+  res.header("Content-Type", "text/csv");
+  res.attachment("cobros-aseguradora.csv");
+  res.send(csv);
+});
+
 export default router;
