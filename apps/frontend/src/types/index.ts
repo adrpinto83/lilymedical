@@ -116,6 +116,7 @@ export interface HistoriaClinica {
   antecedentesMedicos?: string | null;
   antecedentesQuirurgicos?: string | null;
   antecedentesFamiliares?: string | null;
+  alergias?: string | null;
   evaluaciones: EvaluacionFisiatrica[];
   sesiones: Sesion[];
   adjuntos: Adjunto[];
@@ -214,10 +215,48 @@ export interface Receta {
   tipo: TipoReceta;
   diagnostico?: string | null;
   indicacionesGenerales?: string | null;
+  fechaVencimiento?: string | null;
   codigoVerificacion: string;
   fecha: string;
   items: ItemReceta[];
   medico?: { nombre: string; apellido: string };
+}
+
+export interface PlantillaReceta {
+  id: string;
+  tipo: TipoReceta;
+  medicamento?: string | null;
+  presentacion?: string | null;
+  dosis?: string | null;
+  frecuencia?: string | null;
+  duracion?: string | null;
+  tipoTerapia?: string | null;
+  sesiones?: number | null;
+  observaciones?: string | null;
+}
+
+export interface PlantillaEjercicio {
+  id: string;
+  nombre: string;
+  categoria?: string | null;
+  descripcion?: string | null;
+  repeticionesSugeridas?: string | null;
+}
+
+export interface ItemPlanEjercicio {
+  id: string;
+  orden: number;
+  nombre: string;
+  descripcion?: string | null;
+  repeticionesSugeridas?: string | null;
+}
+
+export interface PlanEjercicios {
+  id: string;
+  pacienteId: string;
+  fecha: string;
+  notas?: string | null;
+  items: ItemPlanEjercicio[];
 }
 
 export interface ConstanciaMedica {

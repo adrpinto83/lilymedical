@@ -19,6 +19,9 @@ import adjuntosRoutes from "./modules/adjuntos/adjuntos.routes";
 import usuariosRoutes from "./modules/usuarios/usuarios.routes";
 import perfilMedicoRoutes from "./modules/perfil-medico/perfil-medico.routes";
 import recetasRoutes from "./modules/recetas/recetas.routes";
+import plantillasRecetaRoutes from "./modules/plantillas-receta/plantillas-receta.routes";
+import plantillasEjercicioRoutes from "./modules/plantillas-ejercicio/plantillas-ejercicio.routes";
+import planesEjerciciosRoutes from "./modules/planes-ejercicios/planes-ejercicios.routes";
 import constanciasRoutes from "./modules/constancias/constancias.routes";
 import verificacionRoutes from "./modules/verificacion/verificacion.routes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -59,6 +62,9 @@ export function createApp() {
   app.use("/api/usuarios", usuariosRoutes);
   app.use("/api/perfil-medico", perfilMedicoRoutes);
   app.use("/api/recetas", recetasRoutes);
+  app.use("/api/plantillas-receta", plantillasRecetaRoutes);
+  app.use("/api/plantillas-ejercicio", plantillasEjercicioRoutes);
+  app.use("/api/planes-ejercicios", planesEjerciciosRoutes);
   app.use("/api/constancias", constanciasRoutes);
   app.use("/api/verificar", verificacionRoutes);
 

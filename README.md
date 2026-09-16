@@ -88,9 +88,10 @@ lilymedical/
 - [x] **Fase 7** — Carga de imágenes y estudios clínicos: pestaña "Imágenes y estudios" en la ficha del paciente para subir/ver/descargar/eliminar radiografías, resonancias, fotos clínicas e informes (categorizados), con galería y visor ampliado; diagrama corporal de dolor (frontal/dorsal) interactivo al registrar una evaluación fisiátrica.
 - [x] **Fase 8** — Aseguradoras y convenios avanzados: cada aseguradora define % de cobertura, si requiere autorización previa y tope por sesión; cada paciente puede tener seguro primario y secundario (con su propio N° de afiliación) desde la pestaña "Seguros"; seguimiento de autorizaciones previas (pendiente/aprobada/rechazada); split automático paciente/aseguradora en facturación; reporte de cobros a aseguradora (CSV) para el reclamo al convenio; convenios reales precargados (PDVSA-HCM, Sicoprosa, Mercantil Seguros, La Previsora, MAPFRE), editables desde Facturación → Aseguradoras.
 
+- [x] **Fase 9** — Recetario y planes de tratamiento avanzados: campo de alergias en la historia clínica (con alerta visible en la ficha y en el PDF de receta); favoritos de medicamentos/terapias por médico para autocompletar recetas; catálogo de ejercicios y planes de ejercicios imprimibles (hoja de indicaciones para terapia en casa); vigencia opcional en recetas para tratamientos crónicos repetibles.
+
 ### Pendiente / próximos pasos sugeridos
 
-- **Fase 9** — Recetario y planes de tratamiento avanzados: campo de alergias, favoritos de medicamentos, planes de ejercicios imprimibles para el paciente.
 - **Fase 10** — Impresión e historial clínico enriquecido: exportación por rango de fechas, anexar imágenes al PDF, gráfico de evolución (EVA/Barthel/ROM en el tiempo).
 - **Fase 11** — Recordatorios de citas por email (hoy solo existe el campo `recordatorioEnviado` en `Cita`, listo para conectar un proveedor).
 - **Fase 12** — Portal del paciente (rol `PACIENTE` ya existe en el modelo, falta el flujo de alta y las vistas).

@@ -9,7 +9,7 @@ import {
 } from "../../lib/pdf";
 
 type RecetaConDetalle = Prisma.RecetaGetPayload<{
-  include: { items: true; paciente: true };
+  include: { items: true; paciente: true; historiaClinica: { select: { alergias: true } } };
 }>;
 
 const BOX_Y = 128;
@@ -27,6 +27,15 @@ export async function generarRecetaPdf(
   dibujarCajaContenido(doc, BOX_Y, BOX_ALTURA);
 
   let y = dibujarCamposPaciente(doc, BOX_Y + 14, receta.paciente, receta.fecha);
+
+  if (receta.historiaClinica?.alergias) {
+    doc
+      .font("Body-Bold")
+      .fillColor("#b91c1c")
+      .fontSize(8.5)
+      .text(`⚠ Alergias: ${receta.historiaClinica.alergias}`, BOX_X, y, { width: BOX_ANCHO });
+    y = doc.y + 8;
+  }
 
   const etiqueta = receta.tipo === "MEDICAMENTO" ? "Recipe" : "Indicaciones";
   doc.fillColor("#7c8c81").font("Display-Semi").fontSize(12).text(etiqueta, BOX_X, y);
@@ -78,6 +87,17 @@ export async function generarRecetaPdf(
     doc.font("Body").fillColor("#4c6478").fontSize(9).text(receta.indicacionesGenerales, BOX_X, doc.y, {
       width: BOX_ANCHO,
     });
+    y = doc.y + 8;
+  }
+
+  if (receta.fechaVencimiento) {
+    doc
+      .font("Body")
+      .fillColor("#4c6478")
+      .fontSize(8)
+      .text(`Válida hasta: ${receta.fechaVencimiento.toLocaleDateString("es-VE")}`, BOX_X, y, {
+        width: BOX_ANCHO,
+      });
   }
 
   dibujarPieContacto(doc, membrete, BOX_Y + BOX_ALTURA + 16);

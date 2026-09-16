@@ -9,8 +9,11 @@ export function auditLog(accion: AccionLog) {
     res.on("finish", () => {
       if (!req.user || res.statusCode >= 400) return;
       const pacienteId = req.params.pacienteId ?? req.body?.pacienteId ?? undefined;
-      const historiaClinicaId =
-        req.params.historiaClinicaId ?? req.params.id ?? undefined;
+      // OJO: `req.params.id` es el id del recurso de cada ruta (receta,
+      // constancia, adjunto, sesión, plan...), NO un historiaClinicaId — usarlo
+      // aquí violaba la FK y hacía fallar el log en silencio. Solo se registra
+      // cuando la ruta declara explícitamente ese parámetro.
+      const historiaClinicaId = req.params.historiaClinicaId ?? undefined;
 
       prisma.logAcceso
         .create({

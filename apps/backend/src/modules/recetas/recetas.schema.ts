@@ -18,6 +18,7 @@ export const crearRecetaSchema = z.object({
   tipo: z.enum(["MEDICAMENTO", "ORDEN_TERAPIA"]),
   diagnostico: z.string().optional(),
   indicacionesGenerales: z.string().optional(),
+  fechaVencimiento: z.coerce.date().optional(),
   items: z.array(itemRecetaSchema).min(1, "Agrega al menos un ítem a la receta"),
 });
 

@@ -112,6 +112,8 @@ model Usuario {
   perfilMedico         PerfilMedico?
   recetasEmitidas      Receta[]         @relation("MedicoRecetas")
   constanciasEmitidas  ConstanciaMedica[] @relation("MedicoConstancias")
+  plantillasReceta     PlantillaReceta[]
+  planesEjerciciosEmitidos PlanEjercicios[] @relation("MedicoPlanesEjercicios")
 
   @@map("usuarios")
 }
@@ -198,6 +200,7 @@ model Paciente {
   logsAcceso      LogAcceso[]
   recetas         Receta[]
   constancias     ConstanciaMedica[]
+  planesEjercicios PlanEjercicios[]
 
   @@index([documento])
   @@index([telefono])
@@ -237,6 +240,7 @@ model HistoriaClinica {
   antecedentesMedicos    String?
   antecedentesQuirurgicos String?
   antecedentesFamiliares String?
+  alergias               String? // medicamentosas, alimentarias, etc. — se muestra como alerta en recetas
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -247,6 +251,7 @@ model HistoriaClinica {
   logsAcceso    LogAcceso[]
   recetas       Receta[]
   constancias   ConstanciaMedica[]
+  planesEjercicios PlanEjercicios[]
 
   @@map("historias_clinicas")
 }
@@ -528,6 +533,7 @@ model Receta {
   tipo                  TipoReceta
   diagnostico           String?
   indicacionesGenerales String?
+  fechaVencimiento      DateTime? // para tratamientos crónicos repetibles
   codigoVerificacion    String     @unique @default(uuid())
   fecha                 DateTime   @default(now())
   createdAt             DateTime   @default(now())
@@ -585,4 +591,75 @@ model ConstanciaMedica {
 
   @@index([pacienteId])
   @@map("constancias_medicas")
+}
+
+// ============================================================
+// FAVORITOS DE RECETA Y PLANES DE EJERCICIOS
+// ============================================================
+
+// Favoritos por médico para autocompletar ítems de receta frecuentes
+// (medicamentos u órdenes de terapia habituales).
+model PlantillaReceta {
+  id            String     @id @default(uuid())
+  usuarioId     String
+  tipo          TipoReceta
+  medicamento   String?
+  presentacion  String?
+  dosis         String?
+  frecuencia    String?
+  duracion      String?
+  tipoTerapia   String?
+  sesiones      Int?
+  observaciones String?
+  createdAt     DateTime   @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("plantillas_receta")
+}
+
+// Catálogo compartido de ejercicios (independiente del paciente), usado para
+// armar planes de terapia física en casa.
+model PlantillaEjercicio {
+  id                    String   @id @default(uuid())
+  nombre                String
+  categoria             String? // ej. "Columna lumbar", "Hombro", "Rodilla"
+  descripcion           String?
+  repeticionesSugeridas String? // ej. "3 series x 15 repeticiones"
+  createdAt             DateTime @default(now())
+
+  @@map("plantillas_ejercicio")
+}
+
+// Plan de ejercicios armado para un paciente, imprimible como hoja de
+// indicaciones (terapia en casa).
+model PlanEjercicios {
+  id                String   @id @default(uuid())
+  pacienteId        String
+  historiaClinicaId String
+  medicoId          String
+  fecha             DateTime @default(now())
+  notas             String?
+  createdAt         DateTime @default(now())
+
+  paciente        Paciente            @relation(fields: [pacienteId], references: [id])
+  historiaClinica HistoriaClinica     @relation(fields: [historiaClinicaId], references: [id])
+  medico          Usuario             @relation("MedicoPlanesEjercicios", fields: [medicoId], references: [id])
+  items           ItemPlanEjercicio[]
+
+  @@index([pacienteId])
+  @@map("planes_ejercicios")
+}
+
+model ItemPlanEjercicio {
+  id                    String  @id @default(uuid())
+  planId                String
+  orden                 Int     @default(0)
+  nombre                String
+  descripcion           String?
+  repeticionesSugeridas String?
+
+  plan PlanEjercicios @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("items_plan_ejercicios")
 }

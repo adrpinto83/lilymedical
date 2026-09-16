@@ -9,6 +9,7 @@ const ENCRYPTED_FIELDS: Record<string, string[]> = {
     "antecedentesMedicos",
     "antecedentesQuirurgicos",
     "antecedentesFamiliares",
+    "alergias",
   ],
   sesion: ["notaEvolucion", "tratamientoAplicado"],
   receta: ["diagnostico", "indicacionesGenerales"],
@@ -25,23 +26,33 @@ function encryptArgsData(model: string, data: any) {
   }
 }
 
-function decryptResultFields(model: string, result: any) {
-  const fields = ENCRYPTED_FIELDS[model];
-  if (!result || !fields) return result;
-  const items = Array.isArray(result) ? result : [result];
-  for (const item of items) {
-    if (!item) continue;
-    for (const field of fields) {
-      if (typeof item[field] === "string" && item[field].length > 0) {
-        try {
-          item[field] = decryptField(item[field]);
-        } catch {
-          // deja el valor tal cual si no se puede descifrar (dato legado sin cifrar)
-        }
+// Nombres de campo cifrados, sin importar a qué modelo pertenecen. Un `include`
+// anidado (ej. receta.findUnique({ include: { historiaClinica } })) llega en el
+// mismo resultado que el modelo de nivel superior, así que el descifrado debe
+// recorrer todo el árbol del resultado, no solo las columnas del modelo raíz.
+const ALL_ENCRYPTED_FIELD_NAMES = new Set(Object.values(ENCRYPTED_FIELDS).flat());
+
+function decryptDeep(value: any, depth = 0): any {
+  if (value === null || value === undefined || depth > 6) return value;
+  if (Array.isArray(value)) {
+    for (const item of value) decryptDeep(item, depth + 1);
+    return value;
+  }
+  if (value instanceof Date || typeof value !== "object") return value;
+
+  for (const key of Object.keys(value)) {
+    const v = value[key];
+    if (ALL_ENCRYPTED_FIELD_NAMES.has(key) && typeof v === "string" && v.length > 0) {
+      try {
+        value[key] = decryptField(v);
+      } catch {
+        // deja el valor tal cual si no se puede descifrar (dato legado sin cifrar)
       }
+    } else if (v && typeof v === "object") {
+      decryptDeep(v, depth + 1);
     }
   }
-  return result;
+  return value;
 }
 
 const basePrisma = new PrismaClient({
@@ -65,9 +76,7 @@ export const prisma = basePrisma.$extends({
 
         const result = await query(args);
 
-        if (ENCRYPTED_FIELDS[modelKey]) {
-          decryptResultFields(modelKey, result);
-        }
+        decryptDeep(result);
 
         return result;
       },

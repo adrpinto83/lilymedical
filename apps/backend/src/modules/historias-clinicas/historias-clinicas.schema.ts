@@ -7,6 +7,7 @@ export const actualizarHistoriaSchema = z.object({
   antecedentesMedicos: z.string().optional(),
   antecedentesQuirurgicos: z.string().optional(),
   antecedentesFamiliares: z.string().optional(),
+  alergias: z.string().optional(),
 });
 
 export const crearEvaluacionSchema = z.object({

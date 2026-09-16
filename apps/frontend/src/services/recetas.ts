@@ -22,6 +22,7 @@ export async function crearReceta(payload: {
   tipo: TipoReceta;
   diagnostico?: string;
   indicacionesGenerales?: string;
+  fechaVencimiento?: string;
   items: ItemRecetaInput[];
 }): Promise<Receta> {
   const { data } = await api.post<Receta>("/recetas", payload);

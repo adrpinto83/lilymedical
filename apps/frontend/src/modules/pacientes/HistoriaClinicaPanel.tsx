@@ -35,6 +35,7 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
     antecedentesMedicos: "",
     antecedentesQuirurgicos: "",
     antecedentesFamiliares: "",
+    alergias: "",
   });
   const [notaForm, setNotaForm] = useState({ notaEvolucion: "", tratamientoAplicado: "" });
   const [evalForm, setEvalForm] = useState({
@@ -59,6 +60,7 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
         antecedentesMedicos: data.antecedentesMedicos ?? "",
         antecedentesQuirurgicos: data.antecedentesQuirurgicos ?? "",
         antecedentesFamiliares: data.antecedentesFamiliares ?? "",
+        alergias: data.alergias ?? "",
       });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -133,6 +135,12 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {historia.alergias && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <strong>⚠ Alergias:</strong> {historia.alergias}
+        </div>
+      )}
+
       <Card>
         <CardHeader className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Datos clínicos generales</h2>
@@ -161,7 +169,13 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
                 onChange={(e) => setDatosForm((f) => ({ ...f, codigoCIE10: e.target.value }))}
                 placeholder="ej. M54.5"
               />
-              <div />
+              <Textarea
+                label="Alergias"
+                value={datosForm.alergias}
+                onChange={(e) => setDatosForm((f) => ({ ...f, alergias: e.target.value }))}
+                placeholder="ej. Penicilina, AINES, látex"
+                hint="Se muestra como alerta en las recetas del paciente"
+              />
               <Textarea
                 label="Antecedentes médicos"
                 value={datosForm.antecedentesMedicos}

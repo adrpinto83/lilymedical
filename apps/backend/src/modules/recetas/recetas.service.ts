@@ -27,6 +27,7 @@ export async function crearReceta(medicoId: string, data: CrearRecetaInput) {
       tipo: data.tipo,
       diagnostico: data.diagnostico,
       indicacionesGenerales: data.indicacionesGenerales,
+      fechaVencimiento: data.fechaVencimiento,
       items: {
         create: data.items.map((item, index) => ({ ...item, orden: index })),
       },
@@ -49,6 +50,7 @@ export async function obtenerRecetaParaPdf(id: string) {
     include: {
       items: { orderBy: { orden: "asc" } },
       paciente: true,
+      historiaClinica: { select: { alergias: true } },
     },
   });
   if (!receta) throw new HttpError(404, "Receta no encontrada");
