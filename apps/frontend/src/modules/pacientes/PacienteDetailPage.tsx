@@ -10,10 +10,11 @@ import { useAuth } from "../../context/AuthContext";
 import { PacienteFormModal } from "./PacienteFormModal";
 import { HistoriaClinicaPanel } from "./HistoriaClinicaPanel";
 import { EstadoCuentaPanel } from "./EstadoCuentaPanel";
+import { AdjuntosPanel } from "./AdjuntosPanel";
 import { DocumentosPanel } from "../documentos/DocumentosPanel";
 import { format } from "date-fns";
 
-type Tab = "datos" | "clinico" | "documentos" | "facturacion";
+type Tab = "datos" | "clinico" | "estudios" | "documentos" | "facturacion";
 
 export function PacienteDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export function PacienteDetailPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: "datos", label: "Datos generales" },
     ...(puedeVerClinico ? [{ key: "clinico" as Tab, label: "Historia clínica" }] : []),
+    ...(puedeVerClinico ? [{ key: "estudios" as Tab, label: "Imágenes y estudios" }] : []),
     ...(puedeVerClinico ? [{ key: "documentos" as Tab, label: "Documentos" }] : []),
     { key: "facturacion", label: "Facturación" },
   ];
@@ -115,6 +117,8 @@ export function PacienteDetailPage() {
       )}
 
       {tab === "clinico" && puedeVerClinico && <HistoriaClinicaPanel pacienteId={id} />}
+
+      {tab === "estudios" && puedeVerClinico && <AdjuntosPanel pacienteId={id} />}
 
       {tab === "documentos" && puedeVerClinico && <DocumentosPanel pacienteId={id} />}
 

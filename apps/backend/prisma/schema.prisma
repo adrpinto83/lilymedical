@@ -245,6 +245,7 @@ model Adjunto {
   id                String      @id @default(uuid())
   historiaClinicaId String
   tipo              TipoAdjunto
+  categoria         String? // ej. "Radiografía", "Resonancia", "Foto de postura", "Foto de herida", "Laboratorio"
   nombreArchivo     String
   rutaArchivo       String
   descripcion       String?

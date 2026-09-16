@@ -60,6 +60,7 @@ router.post(
       data: {
         historiaClinicaId: historia.id,
         tipo,
+        categoria: req.body.categoria || undefined,
         nombreArchivo: req.file.originalname,
         rutaArchivo: req.file.filename,
         descripcion: req.body.descripcion,

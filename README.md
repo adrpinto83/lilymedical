@@ -85,13 +85,18 @@ lilymedical/
 - [x] **Fase 4** — Facturación: tarifas, generación de facturas, registro de pagos, estados de cuenta.
 - [x] **Fase 5** — Dashboard con métricas clave y reportes (ingresos, pacientes nuevos, servicios más solicitados) exportables a CSV.
 - [x] **Fase 6** — Recetario y documentos clínicos imprimibles: recetas/órdenes de terapia y constancias médicas en PDF tamaño media carta (igual al recetario físico del consultorio), con membrete, firma digital y QR de verificación pública; exportación de la historia clínica completa a PDF.
+- [x] **Fase 7** — Carga de imágenes y estudios clínicos: pestaña "Imágenes y estudios" en la ficha del paciente para subir/ver/descargar/eliminar radiografías, resonancias, fotos clínicas e informes (categorizados), con galería y visor ampliado; diagrama corporal de dolor (frontal/dorsal) interactivo al registrar una evaluación fisiátrica.
 
 ### Pendiente / próximos pasos sugeridos
 
-- Integración real de recordatorios por email/WhatsApp/SMS (hoy solo existe el campo `recordatorioEnviado` en `Cita`, listo para conectar un proveedor).
-- Exportación de reportes a PDF (hoy los reportes financieros se exportan en CSV, compatible con Excel).
-- Registro de usuarios de tipo `PACIENTE` con portal propio (el modelo de datos ya lo contempla).
-- Tests automatizados (unitarios e integración).
+- **Fase 8** — Aseguradoras y convenios avanzados: % de cobertura, autorizaciones previas, seguro primario/secundario por paciente, y carga de convenios reales (PDVSA-HCM, Sicoprosa, etc.).
+- **Fase 9** — Recetario y planes de tratamiento avanzados: campo de alergias, favoritos de medicamentos, planes de ejercicios imprimibles para el paciente.
+- **Fase 10** — Impresión e historial clínico enriquecido: exportación por rango de fechas, anexar imágenes al PDF, gráfico de evolución (EVA/Barthel/ROM en el tiempo).
+- **Fase 11** — Recordatorios de citas por email (hoy solo existe el campo `recordatorioEnviado` en `Cita`, listo para conectar un proveedor).
+- **Fase 12** — Portal del paciente (rol `PACIENTE` ya existe en el modelo, falta el flujo de alta y las vistas).
+- **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login.
+
+Ver detalle completo en el plan de mejora acordado con el equipo (fases 7-13).
 
 ## Identidad visual
 

@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input, Select, Textarea } from "../../components/ui/Input";
 import { Badge } from "../../components/ui/Badge";
+import { BodyDiagram, PuntoDolor } from "../../components/clinical/BodyDiagram";
 import { HistoriaClinica } from "../../types";
 import {
   obtenerHistoriaPorPaciente,
@@ -42,6 +43,7 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
     puntajeTotal: "",
     observaciones: "",
   });
+  const [puntosDolor, setPuntosDolor] = useState<PuntoDolor[]>([]);
   const [guardando, setGuardando] = useState(false);
 
   async function cargar() {
@@ -106,11 +108,12 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
       await agregarEvaluacion(pacienteId, {
         tipoEscala: evalForm.tipoEscala,
         nombreEscala: evalForm.nombreEscala || undefined,
-        datos: {},
+        datos: puntosDolor.length > 0 ? { puntosDolor } : {},
         puntajeTotal: evalForm.puntajeTotal ? Number(evalForm.puntajeTotal) : undefined,
         observaciones: evalForm.observaciones || undefined,
       });
       setEvalForm({ tipoEscala: "EVA", nombreEscala: "", puntajeTotal: "", observaciones: "" });
+      setPuntosDolor([]);
       await cargar();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -275,6 +278,7 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
                 value={evalForm.observaciones}
                 onChange={(e) => setEvalForm((f) => ({ ...f, observaciones: e.target.value }))}
               />
+              <BodyDiagram puntos={puntosDolor} onChange={setPuntosDolor} />
               <Button type="submit" disabled={guardando} className="self-end">
                 Guardar evaluación
               </Button>
@@ -317,6 +321,13 @@ export function HistoriaClinicaPanel({ pacienteId }: { pacienteId: string }) {
                           : ""}
                       </p>
                       {ev.data.observaciones && <p className="mt-1 text-slate-500">{ev.data.observaciones}</p>}
+                      {Array.isArray((ev.data.datos as { puntosDolor?: PuntoDolor[] } | undefined)?.puntosDolor) &&
+                        (ev.data.datos as { puntosDolor: PuntoDolor[] }).puntosDolor.length > 0 && (
+                          <BodyDiagram
+                            puntos={(ev.data.datos as { puntosDolor: PuntoDolor[] }).puntosDolor}
+                            className="mt-2 items-start"
+                          />
+                        )}
                     </div>
                   )}
                 </li>

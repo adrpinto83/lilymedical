@@ -75,6 +75,7 @@ export interface Sesion {
 export interface Adjunto {
   id: string;
   tipo: "IMAGEN" | "PDF" | "INFORME" | "OTRO";
+  categoria?: string | null;
   nombreArchivo: string;
   rutaArchivo: string;
   descripcion?: string | null;
