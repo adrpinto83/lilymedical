@@ -15,13 +15,39 @@ export async function obtenerHistoriaPorPaciente(pacienteId: string) {
   return historia;
 }
 
-export async function obtenerHistoriaParaPdf(pacienteId: string) {
+export interface OpcionesExportarHistoria {
+  desde?: Date;
+  hasta?: Date;
+  incluirImagenes?: boolean;
+}
+
+export async function obtenerHistoriaParaPdf(
+  pacienteId: string,
+  opciones: OpcionesExportarHistoria = {}
+) {
+  const { desde, hasta, incluirImagenes } = opciones;
+  const rangoFecha =
+    desde || hasta
+      ? { fecha: { ...(desde ? { gte: desde } : {}), ...(hasta ? { lte: hasta } : {}) } }
+      : {};
+
   const historia = await prisma.historiaClinica.findUnique({
     where: { pacienteId },
     include: {
       paciente: true,
-      evaluaciones: { orderBy: { fecha: "asc" }, include: { evaluador: { select: { nombre: true, apellido: true } } } },
-      sesiones: { orderBy: { fecha: "asc" }, include: { terapeuta: { select: { nombre: true, apellido: true } } } },
+      evaluaciones: {
+        where: rangoFecha,
+        orderBy: { fecha: "asc" },
+        include: { evaluador: { select: { nombre: true, apellido: true } } },
+      },
+      sesiones: {
+        where: rangoFecha,
+        orderBy: { fecha: "asc" },
+        include: { terapeuta: { select: { nombre: true, apellido: true } } },
+      },
+      adjuntos: incluirImagenes
+        ? { where: { tipo: "IMAGEN" }, orderBy: { createdAt: "asc" } }
+        : false,
     },
   });
   if (!historia) throw new HttpError(404, "Historia clínica no encontrada");

@@ -6,11 +6,11 @@ import { Receta, ConstanciaMedica, PlanEjercicios } from "../../types";
 import { listarRecetasPorPaciente, abrirPdfReceta } from "../../services/recetas";
 import { listarConstanciasPorPaciente, abrirPdfConstancia } from "../../services/constancias";
 import { listarPlanesPorPaciente, abrirPdfPlanEjercicios } from "../../services/planesEjercicios";
-import { abrirPdfHistoriaClinica } from "../../services/historiasClinicas";
 import { getErrorMessage } from "../../services/api";
 import { RecetaFormModal } from "./RecetaFormModal";
 import { ConstanciaFormModal } from "./ConstanciaFormModal";
 import { PlanEjerciciosFormModal } from "./PlanEjerciciosFormModal";
+import { ExportarHistoriaModal } from "./ExportarHistoriaModal";
 import { format } from "date-fns";
 
 export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
@@ -21,6 +21,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   const [recetaModalOpen, setRecetaModalOpen] = useState(false);
   const [constanciaModalOpen, setConstanciaModalOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [exportarModalOpen, setExportarModalOpen] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -53,7 +54,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
             + Nuevo plan de ejercicios
           </Button>
         </div>
-        <Button variant="ghost" onClick={() => abrirPdfHistoriaClinica(pacienteId)}>
+        <Button variant="ghost" onClick={() => setExportarModalOpen(true)}>
           📄 Exportar historia clínica completa (PDF)
         </Button>
       </div>
@@ -165,6 +166,11 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
         open={constanciaModalOpen}
         onClose={() => setConstanciaModalOpen(false)}
         onCreated={cargar}
+        pacienteId={pacienteId}
+      />
+      <ExportarHistoriaModal
+        open={exportarModalOpen}
+        onClose={() => setExportarModalOpen(false)}
         pacienteId={pacienteId}
       />
     </div>

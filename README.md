@@ -90,9 +90,10 @@ lilymedical/
 
 - [x] **Fase 9** — Recetario y planes de tratamiento avanzados: campo de alergias en la historia clínica (con alerta visible en la ficha y en el PDF de receta); favoritos de medicamentos/terapias por médico para autocompletar recetas; catálogo de ejercicios y planes de ejercicios imprimibles (hoja de indicaciones para terapia en casa); vigencia opcional en recetas para tratamientos crónicos repetibles.
 
+- [x] **Fase 10** — Impresión e historial clínico enriquecido: exportación de la historia clínica en PDF filtrable por rango de fechas (opciones al exportar desde "Documentos"), anexo opcional de las imágenes/estudios cargados al final del documento, y gráfico de evolución en el tiempo (EVA, Barthel, goniometría/ROM u otra escala personalizada) para cada escala con al menos dos mediciones numéricas registradas.
+
 ### Pendiente / próximos pasos sugeridos
 
-- **Fase 10** — Impresión e historial clínico enriquecido: exportación por rango de fechas, anexar imágenes al PDF, gráfico de evolución (EVA/Barthel/ROM en el tiempo).
 - **Fase 11** — Recordatorios de citas por email (hoy solo existe el campo `recordatorioEnviado` en `Cita`, listo para conectar un proveedor).
 - **Fase 12** — Portal del paciente (rol `PACIENTE` ya existe en el modelo, falta el flujo de alta y las vistas).
 - **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login.

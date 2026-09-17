@@ -7,9 +7,7 @@ import { roleGuard } from "../../middleware/roleGuard";
 import { auditLog } from "../../middleware/auditLog";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
-
-const uploadsDir = path.resolve(process.cwd(), process.env.UPLOADS_DIR || "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+import { uploadsDir, rutaAbsolutaAdjunto } from "../../lib/uploads";
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -75,14 +73,14 @@ router.post(
 router.get("/:id/descargar", auditLog("VER"), async (req, res) => {
   const adjunto = await prisma.adjunto.findUnique({ where: { id: req.params.id } });
   if (!adjunto) throw new HttpError(404, "Adjunto no encontrado");
-  res.download(path.join(uploadsDir, adjunto.rutaArchivo), adjunto.nombreArchivo);
+  res.download(rutaAbsolutaAdjunto(adjunto.rutaArchivo), adjunto.nombreArchivo);
 });
 
 router.delete("/:id", auditLog("ELIMINAR"), async (req, res) => {
   const adjunto = await prisma.adjunto.findUnique({ where: { id: req.params.id } });
   if (!adjunto) throw new HttpError(404, "Adjunto no encontrado");
 
-  const filePath = path.join(uploadsDir, adjunto.rutaArchivo);
+  const filePath = rutaAbsolutaAdjunto(adjunto.rutaArchivo);
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
   await prisma.adjunto.delete({ where: { id: req.params.id } });

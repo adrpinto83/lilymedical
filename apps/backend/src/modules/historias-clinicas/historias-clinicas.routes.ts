@@ -8,6 +8,21 @@ import * as historiasService from "./historias-clinicas.service";
 import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
 import { generarHistoriaClinicaPdf } from "./historias-clinicas.pdf";
+import { HttpError } from "../../lib/http-error";
+
+// Parsea un input tipo "YYYY-MM-DD" (date input del frontend) como día
+// calendario en la hora LOCAL del servidor, en vez de UTC medianoche: si se
+// usara `new Date("YYYY-MM-DD")` directamente, en zonas horarias negativas
+// (ej. Venezuela, UTC-4) el día se corre uno hacia atrás al mostrarlo con
+// toLocaleDateString (31/5 en vez de 1/6).
+function parseFechaLocal(valor: string, finDelDia: boolean): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+  if (!match) return new Date(NaN);
+  const [, anio, mes, dia] = match;
+  return finDelDia
+    ? new Date(Number(anio), Number(mes) - 1, Number(dia), 23, 59, 59, 999)
+    : new Date(Number(anio), Number(mes) - 1, Number(dia), 0, 0, 0, 0);
+}
 
 const router = Router();
 
@@ -30,11 +45,21 @@ router.get("/paciente/:pacienteId/linea-tiempo", auditLog("VER"), async (req, re
 });
 
 router.get("/paciente/:pacienteId/pdf", auditLog("VER"), async (req, res) => {
-  const historia = await historiasService.obtenerHistoriaParaPdf(req.params.pacienteId);
+  const desde = req.query.desde ? parseFechaLocal(String(req.query.desde), false) : undefined;
+  const hasta = req.query.hasta ? parseFechaLocal(String(req.query.hasta), true) : undefined;
+  if (desde && isNaN(desde.getTime())) throw new HttpError(400, "Fecha 'desde' inválida");
+  if (hasta && isNaN(hasta.getTime())) throw new HttpError(400, "Fecha 'hasta' inválida");
+  const incluirImagenes = req.query.incluirImagenes === "true";
+
+  const historia = await historiasService.obtenerHistoriaParaPdf(req.params.pacienteId, {
+    desde,
+    hasta,
+    incluirImagenes,
+  });
   const membrete = await construirMembrete(req.user!.sub);
   const doc = crearDocumentoPdf();
   enviarPdfComoRespuesta(doc, res, `historia-clinica-${historia.paciente.documento}.pdf`);
-  await generarHistoriaClinicaPdf(doc, historia, membrete);
+  await generarHistoriaClinicaPdf(doc, historia, membrete, { desde, hasta });
   doc.end();
 });
 
