@@ -16,6 +16,8 @@ import { Select } from "../../components/ui/Input";
 import { Cita, BloqueoHorario } from "../../types";
 import { Profesional, listarProfesionales } from "../../services/usuarios";
 import { listarCitas, listarBloqueos } from "../../services/citas";
+import { enviarRecordatoriosAhora } from "../../services/recordatorios";
+import { getErrorMessage } from "../../services/api";
 import { TimeGridView } from "./TimeGridView";
 import { MonthView } from "./MonthView";
 import { CitaFormModal } from "./CitaFormModal";
@@ -35,6 +37,8 @@ export function AgendaPage() {
   const [recurrenteModalOpen, setRecurrenteModalOpen] = useState(false);
   const [slotSeleccionado, setSlotSeleccionado] = useState<Date | undefined>();
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
+  const [enviandoRecordatorios, setEnviandoRecordatorios] = useState(false);
+  const [mensajeRecordatorios, setMensajeRecordatorios] = useState<string | null>(null);
 
   useEffect(() => {
     listarProfesionales().then(setProfesionales).catch(() => setProfesionales([]));
@@ -70,6 +74,28 @@ export function AgendaPage() {
     else setFecha((f) => addMonths(f, direccion));
   }
 
+  async function enviarRecordatorios() {
+    setEnviandoRecordatorios(true);
+    setMensajeRecordatorios(null);
+    try {
+      const r = await enviarRecordatoriosAhora();
+      if (!r.configurado) {
+        setMensajeRecordatorios("El envío de recordatorios por email no está configurado (falta SMTP).");
+      } else {
+        setMensajeRecordatorios(
+          `${r.enviados} recordatorio(s) enviado(s)` +
+            (r.sinEmail > 0 ? `, ${r.sinEmail} paciente(s) sin email registrado` : "") +
+            (r.fallidos > 0 ? `, ${r.fallidos} fallido(s)` : "") +
+            (r.revisadas === 0 ? " (no había citas próximas pendientes)" : "")
+        );
+      }
+    } catch (err) {
+      setMensajeRecordatorios(getErrorMessage(err));
+    } finally {
+      setEnviandoRecordatorios(false);
+    }
+  }
+
   function diasVisibles(): Date[] {
     if (vista === "dia") return [fecha];
     const inicio = startOfWeek(fecha, { weekStartsOn: 1 });
@@ -91,6 +117,9 @@ export function AgendaPage() {
           <p className="text-sm capitalize text-slate-500">{tituloRango()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={enviarRecordatorios} disabled={enviandoRecordatorios}>
+            {enviandoRecordatorios ? "Enviando..." : "✉️ Enviar recordatorios pendientes"}
+          </Button>
           <Button variant="secondary" onClick={() => setRecurrenteModalOpen(true)}>
             + Paquete de sesiones
           </Button>
@@ -104,6 +133,12 @@ export function AgendaPage() {
           </Button>
         </div>
       </div>
+
+      {mensajeRecordatorios && (
+        <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          {mensajeRecordatorios}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

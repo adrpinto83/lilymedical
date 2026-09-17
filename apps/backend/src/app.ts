@@ -24,6 +24,7 @@ import plantillasEjercicioRoutes from "./modules/plantillas-ejercicio/plantillas
 import planesEjerciciosRoutes from "./modules/planes-ejercicios/planes-ejercicios.routes";
 import constanciasRoutes from "./modules/constancias/constancias.routes";
 import verificacionRoutes from "./modules/verificacion/verificacion.routes";
+import recordatoriosRoutes from "./modules/recordatorios/recordatorios.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -67,6 +68,7 @@ export function createApp() {
   app.use("/api/planes-ejercicios", planesEjerciciosRoutes);
   app.use("/api/constancias", constanciasRoutes);
   app.use("/api/verificar", verificacionRoutes);
+  app.use("/api/recordatorios", recordatoriosRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Recurso no encontrado" });

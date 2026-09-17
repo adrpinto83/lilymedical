@@ -92,9 +92,10 @@ lilymedical/
 
 - [x] **Fase 10** — Impresión e historial clínico enriquecido: exportación de la historia clínica en PDF filtrable por rango de fechas (opciones al exportar desde "Documentos"), anexo opcional de las imágenes/estudios cargados al final del documento, y gráfico de evolución en el tiempo (EVA, Barthel, goniometría/ROM u otra escala personalizada) para cada escala con al menos dos mediciones numéricas registradas.
 
+- [x] **Fase 11** — Recordatorios de citas por email: job automático (cada 15 minutos, vía `node-cron`) que envía por email un recordatorio a los pacientes con citas próximas (ventana configurable con `RECORDATORIO_HORAS_ANTES`, 24h por defecto) que aún no lo tengan enviado, y marca `recordatorioEnviado` al confirmarse el envío; requiere configurar `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` en `.env` (si no se configura, el job simplemente no se inicia); botón "Enviar recordatorios pendientes" en Agenda para disparar el envío manualmente en cualquier momento.
+
 ### Pendiente / próximos pasos sugeridos
 
-- **Fase 11** — Recordatorios de citas por email (hoy solo existe el campo `recordatorioEnviado` en `Cita`, listo para conectar un proveedor).
 - **Fase 12** — Portal del paciente (rol `PACIENTE` ya existe en el modelo, falta el flujo de alta y las vistas).
 - **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login.
 
