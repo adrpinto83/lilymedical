@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../../components/layout/Logo";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -56,6 +56,12 @@ export function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </Button>
         </form>
+        <p className="mt-4 text-center text-sm text-slate-500">
+          ¿Eres paciente y no tienes cuenta?{" "}
+          <Link to="/registro-paciente" className="font-medium text-lily-blue-600 hover:underline">
+            Crea tu portal aquí
+          </Link>
+        </p>
       </div>
     </div>
   );

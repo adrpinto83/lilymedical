@@ -2,7 +2,7 @@ import { Router } from "express";
 import { validateBody } from "../../middleware/validate";
 import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
-import { loginSchema, registerSchema } from "./auth.schema";
+import { loginSchema, registerSchema, registroPacienteSchema } from "./auth.schema";
 import * as authService from "./auth.service";
 
 const router = Router();
@@ -11,6 +11,17 @@ router.post("/login", validateBody(loginSchema), async (req, res) => {
   const result = await authService.login(req.body);
   res.json(result);
 });
+
+// Alta pública del portal del paciente (ver auth.service.registrarPaciente
+// para las validaciones de cédula/email contra la ficha ya existente).
+router.post(
+  "/registro-paciente",
+  validateBody(registroPacienteSchema),
+  async (req, res) => {
+    const result = await authService.registrarPaciente(req.body);
+    res.status(201).json(result);
+  }
+);
 
 // Solo un médico (dueño del consultorio) puede dar de alta nuevos usuarios/staff
 router.post(

@@ -94,9 +94,10 @@ lilymedical/
 
 - [x] **Fase 11** — Recordatorios de citas por email: job automático (cada 15 minutos, vía `node-cron`) que envía por email un recordatorio a los pacientes con citas próximas (ventana configurable con `RECORDATORIO_HORAS_ANTES`, 24h por defecto) que aún no lo tengan enviado, y marca `recordatorioEnviado` al confirmarse el envío; requiere configurar `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` en `.env` (si no se configura, el job simplemente no se inicia); botón "Enviar recordatorios pendientes" en Agenda para disparar el envío manualmente en cualquier momento.
 
+- [x] **Fase 12** — Portal del paciente: alta pública en `/registro-paciente` (el paciente confirma su cédula + el email que el consultorio tiene registrado; si coinciden, crea su propio login con rol `PACIENTE` vinculado a su ficha clínica vía `Usuario.pacienteId`). El portal (`/portal`) tiene su propio layout separado del panel del staff, con: resumen (alergias, diagnóstico, próxima cita), historial completo de citas, descarga en PDF de sus recetas/constancias/planes de ejercicios ya emitidos, y edición de sus propios datos de contacto (teléfono, dirección, contacto de emergencia — los datos clínicos e identidad siguen siendo de solo lectura, editables únicamente por el consultorio). Todos los endpoints (`/api/portal/*`) resuelven el paciente a partir del usuario autenticado, nunca de un id en la URL, para que un paciente no pueda ver datos de otro. No expone notas de evolución ni evaluaciones fisiátricas completas (quedan solo para el personal médico).
+
 ### Pendiente / próximos pasos sugeridos
 
-- **Fase 12** — Portal del paciente (rol `PACIENTE` ya existe en el modelo, falta el flujo de alta y las vistas).
 - **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login.
 
 Ver detalle completo en el plan de mejora acordado con el equipo (fases 7-13).

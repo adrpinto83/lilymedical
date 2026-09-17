@@ -14,6 +14,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  registrarPaciente: (documento: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -37,6 +38,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const { data } = await api.post("/auth/login", { email, password });
+      localStorage.setItem("lilymedical_token", data.token);
+      localStorage.setItem("lilymedical_user", JSON.stringify(data.usuario));
+      setUser(data.usuario);
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const registrarPaciente = useCallback(async (documento: string, email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post("/auth/registro-paciente", { documento, email, password });
       localStorage.setItem("lilymedical_token", data.token);
       localStorage.setItem("lilymedical_user", JSON.stringify(data.usuario));
       setUser(data.usuario);
@@ -71,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, registrarPaciente, logout }}>
       {children}
     </AuthContext.Provider>
   );

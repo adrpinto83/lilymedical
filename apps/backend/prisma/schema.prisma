@@ -97,9 +97,12 @@ model Usuario {
   passwordHash String
   rol          RolUsuario
   especialidad String? // ej. "Fisiatría", "Terapia Ocupacional" (para MEDICO)
+  pacienteId   String?    @unique // vincula un login con rol PACIENTE a su ficha clínica (portal del paciente)
   activo       Boolean    @default(true)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  paciente Paciente? @relation(fields: [pacienteId], references: [id])
 
   citasComoProfesional Cita[]           @relation("ProfesionalCitas")
   sesionesComoTerapeuta Sesion[]        @relation("TerapeutaSesiones")
@@ -201,6 +204,7 @@ model Paciente {
   recetas         Receta[]
   constancias     ConstanciaMedica[]
   planesEjercicios PlanEjercicios[]
+  usuarioPortal   Usuario?
 
   @@index([documento])
   @@index([telefono])

@@ -7,7 +7,10 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles?: RolUsuario[] }
 
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(user.rol)) {
-    return <Navigate to="/" replace />;
+    // Cada rol tiene su propio "home": el personal usa "/" (Dashboard) y el
+    // paciente "/portal", para no rebotar a una ruta que también le está
+    // vedada (lo que produciría un loop de redirects).
+    return <Navigate to={user.rol === "PACIENTE" ? "/portal" : "/"} replace />;
   }
 
   return <Outlet />;
