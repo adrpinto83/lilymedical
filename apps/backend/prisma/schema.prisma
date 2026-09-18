@@ -99,6 +99,8 @@ model Usuario {
   especialidad String? // ej. "Fisiatría", "Terapia Ocupacional" (para MEDICO)
   pacienteId   String?    @unique // vincula un login con rol PACIENTE a su ficha clínica (portal del paciente)
   activo       Boolean    @default(true)
+  intentosFallidos Int      @default(0) // login: intentos de contraseña incorrectos consecutivos (Fase 13)
+  bloqueadoHasta   DateTime? // login: bloqueado temporalmente tras superar LOGIN_MAX_INTENTOS (Fase 13)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

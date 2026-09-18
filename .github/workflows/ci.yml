@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+      JWT_SECRET: "ci-secret"
+      FIELD_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generar cliente de Prisma
+        run: npm run prisma:generate --workspace=apps/backend
+
+      - name: Typecheck y build
+        run: npm run build --workspace=apps/backend
+
+      - name: Tests
+        run: npm test --workspace=apps/backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint --workspace=apps/frontend
+
+      - name: Tests
+        run: npm test --workspace=apps/frontend
+
+      - name: Typecheck y build
+        run: npm run build --workspace=apps/frontend

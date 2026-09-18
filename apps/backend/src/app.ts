@@ -26,6 +26,7 @@ import constanciasRoutes from "./modules/constancias/constancias.routes";
 import verificacionRoutes from "./modules/verificacion/verificacion.routes";
 import recordatoriosRoutes from "./modules/recordatorios/recordatorios.routes";
 import portalPacienteRoutes from "./modules/portal-paciente/portal-paciente.routes";
+import backupsRoutes from "./modules/backups/backups.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -71,6 +72,7 @@ export function createApp() {
   app.use("/api/verificar", verificacionRoutes);
   app.use("/api/recordatorios", recordatoriosRoutes);
   app.use("/api/portal", portalPacienteRoutes);
+  app.use("/api/backups", backupsRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Recurso no encontrado" });

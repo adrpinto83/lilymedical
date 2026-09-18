@@ -4,15 +4,57 @@ import { signToken } from "../../lib/jwt";
 import { HttpError } from "../../lib/http-error";
 import { LoginInput, RegisterInput, RegistroPacienteInput } from "./auth.schema";
 
+// Protección contra fuerza bruta (Fase 13): tras LOGIN_MAX_INTENTOS contraseñas
+// incorrectas consecutivas, la cuenta queda bloqueada por LOGIN_BLOQUEO_MINUTOS.
+function maxIntentos(): number {
+  const valor = Number(process.env.LOGIN_MAX_INTENTOS);
+  return Number.isFinite(valor) && valor > 0 ? valor : 5;
+}
+
+function bloqueoMinutos(): number {
+  const valor = Number(process.env.LOGIN_BLOQUEO_MINUTOS);
+  return Number.isFinite(valor) && valor > 0 ? valor : 15;
+}
+
 export async function login({ email, password }: LoginInput) {
   const usuario = await prisma.usuario.findUnique({ where: { email } });
   if (!usuario || !usuario.activo) {
     throw new HttpError(401, "Credenciales inválidas");
   }
 
+  if (usuario.bloqueadoHasta && usuario.bloqueadoHasta > new Date()) {
+    const minutosRestantes = Math.ceil((usuario.bloqueadoHasta.getTime() - Date.now()) / 60000);
+    throw new HttpError(
+      423,
+      `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Vuelve a intentar en ${minutosRestantes} minuto(s).`
+    );
+  }
+
   const valido = await bcrypt.compare(password, usuario.passwordHash);
   if (!valido) {
+    const intentos = usuario.intentosFallidos + 1;
+    const bloquear = intentos >= maxIntentos();
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: {
+        intentosFallidos: bloquear ? 0 : intentos,
+        bloqueadoHasta: bloquear ? new Date(Date.now() + bloqueoMinutos() * 60000) : null,
+      },
+    });
+    if (bloquear) {
+      throw new HttpError(
+        423,
+        `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Vuelve a intentar en ${bloqueoMinutos()} minuto(s).`
+      );
+    }
     throw new HttpError(401, "Credenciales inválidas");
+  }
+
+  if (usuario.intentosFallidos > 0 || usuario.bloqueadoHasta) {
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { intentosFallidos: 0, bloqueadoHasta: null },
+    });
   }
 
   const token = signToken({

@@ -2,12 +2,13 @@ import { Router } from "express";
 import { validateBody } from "../../middleware/validate";
 import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
+import { loginRateLimit } from "../../middleware/rateLimit";
 import { loginSchema, registerSchema, registroPacienteSchema } from "./auth.schema";
 import * as authService from "./auth.service";
 
 const router = Router();
 
-router.post("/login", validateBody(loginSchema), async (req, res) => {
+router.post("/login", loginRateLimit, validateBody(loginSchema), async (req, res) => {
   const result = await authService.login(req.body);
   res.json(result);
 });
@@ -16,6 +17,7 @@ router.post("/login", validateBody(loginSchema), async (req, res) => {
 // para las validaciones de cédula/email contra la ficha ya existente).
 router.post(
   "/registro-paciente",
+  loginRateLimit,
   validateBody(registroPacienteSchema),
   async (req, res) => {
     const result = await authService.registrarPaciente(req.body);

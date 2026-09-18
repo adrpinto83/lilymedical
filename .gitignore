@@ -10,6 +10,7 @@ build/
 !**/uploads/**/.gitkeep
 apps/backend/prisma/dev.db
 apps/backend/.pgdata/
+apps/backend/backups/
 apps/frontend/dist/
 .vscode/
 coverage/

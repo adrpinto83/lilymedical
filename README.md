@@ -96,11 +96,18 @@ lilymedical/
 
 - [x] **Fase 12** — Portal del paciente: alta pública en `/registro-paciente` (el paciente confirma su cédula + el email que el consultorio tiene registrado; si coinciden, crea su propio login con rol `PACIENTE` vinculado a su ficha clínica vía `Usuario.pacienteId`). El portal (`/portal`) tiene su propio layout separado del panel del staff, con: resumen (alergias, diagnóstico, próxima cita), historial completo de citas, descarga en PDF de sus recetas/constancias/planes de ejercicios ya emitidos, y edición de sus propios datos de contacto (teléfono, dirección, contacto de emergencia — los datos clínicos e identidad siguen siendo de solo lectura, editables únicamente por el consultorio). Todos los endpoints (`/api/portal/*`) resuelven el paciente a partir del usuario autenticado, nunca de un id en la URL, para que un paciente no pueda ver datos de otro. No expone notas de evolución ni evaluaciones fisiátricas completas (quedan solo para el personal médico).
 
-### Pendiente / próximos pasos sugeridos
+- [x] **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login:
+  - **Tests:** Vitest en backend (`npm test --workspace=apps/backend`) cubriendo el bloqueo de cuenta en login, JWT y `roleGuard`; Vitest + Testing Library en frontend (`npm test --workspace=apps/frontend`) para componentes de UI base.
+  - **CI:** workflow de GitHub Actions (`.github/workflows/ci.yml`) que en cada push/PR a `main` genera el cliente de Prisma, compila y corre los tests del backend, y lintea/compila/corre los tests del frontend.
+  - **Backups:** job diario (`node-cron`, configurable con `BACKUP_CRON`) que corre `pg_dump` y deja el volcado comprimido (formato custom, restaurable con `pg_restore`) en `BACKUP_DIR` (por defecto `apps/backend/backups/`), con limpieza automática de backups más viejos que `BACKUP_RETENCION_DIAS` (30 días por defecto). Requiere tener `pg_dump` instalado en el servidor (paquete `postgresql-client`). Endpoints `/api/backups` (solo `MEDICO`) para listar, disparar un backup manual y descargar un volcado puntual.
+  - **Fuerza bruta en login:** tras `LOGIN_MAX_INTENTOS` contraseñas incorrectas consecutivas (5 por defecto) la cuenta queda bloqueada `LOGIN_BLOQUEO_MINUTOS` (15 por defecto); el contador se resetea al iniciar sesión correctamente. Además hay un límite de solicitudes por IP en `/api/auth/login` y `/api/auth/registro-paciente` (`express-rate-limit`) como primera capa de defensa.
 
-- **Fase 13** — Tests automatizados, CI, backups programados y protección contra fuerza bruta en login.
+## Tests
 
-Ver detalle completo en el plan de mejora acordado con el equipo (fases 7-13).
+```bash
+npm test --workspace=apps/backend
+npm test --workspace=apps/frontend
+```
 
 ## Identidad visual
 
