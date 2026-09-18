@@ -4,7 +4,72 @@ import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { DashboardData, obtenerDashboard } from "../../services/reportes";
 import { getErrorMessage } from "../../services/api";
+import { AlertasEquipos, obtenerAlertasEquipos } from "../../services/equipos";
+import { Insumo, listarInsumosBajoStock } from "../../services/inventario";
+import { alertaMantenimiento, estadoEquipoLabel } from "../inventario/equiposUi";
 import { format } from "date-fns";
+
+function AlertasInventario() {
+  const [equipos, setEquipos] = useState<AlertasEquipos | null>(null);
+  const [insumos, setInsumos] = useState<Insumo[]>([]);
+
+  useEffect(() => {
+    obtenerAlertasEquipos().then(setEquipos).catch(() => setEquipos(null));
+    listarInsumosBajoStock().then(setInsumos).catch(() => setInsumos([]));
+  }, []);
+
+  if (!equipos) return null;
+
+  const items = [
+    ...equipos.mantenimientoVencido.map((e) => ({
+      id: `v-${e.id}`,
+      texto: e.nombre,
+      detalle: `Mantenimiento ${alertaMantenimiento(e.proximoMantenimiento).texto.toLowerCase()}`,
+      color: "red" as const,
+    })),
+    ...equipos.fueraDeServicio.map((e) => ({
+      id: `f-${e.id}`,
+      texto: e.nombre,
+      detalle: estadoEquipoLabel[e.estado],
+      color: "red" as const,
+    })),
+    ...equipos.mantenimientoProximo.map((e) => ({
+      id: `p-${e.id}`,
+      texto: e.nombre,
+      detalle: `Mantenimiento ${alertaMantenimiento(e.proximoMantenimiento, equipos.diasAviso).texto.toLowerCase()}`,
+      color: "amber" as const,
+    })),
+    ...insumos.map((i) => ({
+      id: `i-${i.id}`,
+      texto: i.nombre,
+      detalle: `Stock bajo: ${i.stockActual} ${i.unidadMedida ?? ""} (mínimo ${i.stockMinimo})`,
+      color: "amber" as const,
+    })),
+  ];
+
+  if (items.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">Alertas de equipos e insumos</h2>
+        <Link to="/inventario" className="text-sm text-lily-blue-600 hover:underline">
+          Ir a inventario
+        </Link>
+      </CardHeader>
+      <CardBody className="p-0">
+        <ul className="divide-y divide-slate-100">
+          {items.map((item) => (
+            <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+              <span className="font-medium text-slate-900">{item.texto}</span>
+              <Badge color={item.color}>{item.detalle}</Badge>
+            </li>
+          ))}
+        </ul>
+      </CardBody>
+    </Card>
+  );
+}
 
 function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
@@ -43,6 +108,8 @@ export function DashboardPage() {
         <StatCard label="Pacientes activos" value={data.pacientesActivos} />
         <StatCard label="Pacientes nuevos (mes)" value={data.pacientesNuevosDelMes} accent="text-lily-blue-600" />
       </div>
+
+      <AlertasInventario />
 
       <Card>
         <CardHeader className="flex items-center justify-between">

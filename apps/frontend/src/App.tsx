@@ -10,6 +10,7 @@ import { PacienteDetailPage } from "./modules/pacientes/PacienteDetailPage";
 import { AgendaPage } from "./modules/agenda/AgendaPage";
 import { FacturacionPage } from "./modules/facturacion/FacturacionPage";
 import { PerfilMedicoPage } from "./modules/perfil-medico/PerfilMedicoPage";
+import { InventarioPage } from "./modules/inventario/InventarioPage";
 import { VerificacionPage } from "./modules/verificacion/VerificacionPage";
 import { RegistroPacientePage } from "./modules/portal-paciente/RegistroPacientePage";
 import { PortalLayout } from "./modules/portal-paciente/PortalLayout";
@@ -45,6 +46,7 @@ export default function App() {
                 <Route path="/agenda" element={<AgendaPage />} />
                 <Route path="/facturacion" element={<FacturacionPage />} />
                 <Route path="/reportes" element={<ReportesPage />} />
+                <Route path="/inventario" element={<InventarioPage />} />
                 <Route element={<ProtectedRoute allowedRoles={["MEDICO"]} />}>
                   <Route path="/perfil" element={<PerfilMedicoPage />} />
                 </Route>

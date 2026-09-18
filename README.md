@@ -102,6 +102,11 @@ lilymedical/
   - **Backups:** job diario (`node-cron`, configurable con `BACKUP_CRON`) que corre `pg_dump` y deja el volcado comprimido (formato custom, restaurable con `pg_restore`) en `BACKUP_DIR` (por defecto `apps/backend/backups/`), con limpieza automática de backups más viejos que `BACKUP_RETENCION_DIAS` (30 días por defecto). Requiere tener `pg_dump` instalado en el servidor (paquete `postgresql-client`). Endpoints `/api/backups` (solo `MEDICO`) para listar, disparar un backup manual y descargar un volcado puntual.
   - **Fuerza bruta en login:** tras `LOGIN_MAX_INTENTOS` contraseñas incorrectas consecutivas (5 por defecto) la cuenta queda bloqueada `LOGIN_BLOQUEO_MINUTOS` (15 por defecto); el contador se resetea al iniciar sesión correctamente. Además hay un límite de solicitudes por IP en `/api/auth/login` y `/api/auth/registro-paciente` (`express-rate-limit`) como primera capa de defensa.
 
+- [x] **Fase 14** — Inventario de equipos e insumos (menú **Inventario**, roles `MEDICO` y `ADMINISTRATIVO`):
+  - **Equipos:** ficha de cada máquina (electroestimulación, ultrasonido, láser, magnetoterapia, tracción, ondas de choque...) con marca/modelo, N° de serie, ubicación, garantía y técnico o empresa de servicio. Estado (operativo, en mantenimiento, fuera de servicio, dado de baja). Plan preventivo con frecuencia en días: el próximo mantenimiento se calcula solo al registrar un preventivo o una calibración (un correctivo/reparación no mueve el calendario). Historial de mantenimientos con fecha, descripción, quién lo realizó y costo.
+  - **Insumos:** alta con stock inicial, edición, entradas y salidas (sin permitir stock negativo, incluso con registros simultáneos), historial de movimientos y marca de "Reponer" al llegar al stock mínimo.
+  - **Alertas en el Dashboard:** equipos con mantenimiento vencido o por vencer (ventana `EQUIPOS_DIAS_AVISO`, 15 días por defecto), equipos fuera de servicio e insumos con stock bajo.
+
 ## Tests
 
 ```bash

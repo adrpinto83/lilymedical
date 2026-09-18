@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { to: "/agenda", label: "Agenda", icon: "🗓️", roles: ["MEDICO", "ADMINISTRATIVO"] },
   { to: "/facturacion", label: "Facturación", icon: "🧾", roles: ["MEDICO", "ADMINISTRATIVO"] },
   { to: "/reportes", label: "Reportes", icon: "📈", roles: ["MEDICO", "ADMINISTRATIVO"] },
+  { to: "/inventario", label: "Inventario", icon: "🛠️", roles: ["MEDICO", "ADMINISTRATIVO"] },
   { to: "/perfil", label: "Mi perfil", icon: "🩺", roles: ["MEDICO"] },
 ];
 

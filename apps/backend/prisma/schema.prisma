@@ -114,6 +114,7 @@ model Usuario {
   pagosRegistrados     Pago[]           @relation("RegistradoPorUsuario")
   logsAcceso           LogAcceso[]
   movimientosInsumo    MovimientoInsumo[]
+  mantenimientosEquipo MantenimientoEquipo[]
   perfilMedico         PerfilMedico?
   recetasEmitidas      Receta[]         @relation("MedicoRecetas")
   constanciasEmitidas  ConstanciaMedica[] @relation("MedicoConstancias")
@@ -480,6 +481,69 @@ model MovimientoInsumo {
   registradoPor Usuario @relation(fields: [registradoPorId], references: [id])
 
   @@map("movimientos_insumo")
+}
+
+// ============================================================
+// EQUIPOS Y MANTENIMIENTO
+// ============================================================
+
+enum EstadoEquipo {
+  OPERATIVO
+  EN_MANTENIMIENTO
+  FUERA_DE_SERVICIO
+  DADO_DE_BAJA
+}
+
+enum TipoMantenimiento {
+  PREVENTIVO
+  CORRECTIVO
+  CALIBRACION
+}
+
+// Máquinas del consultorio (electroestimulación, ultrasonido, láser,
+// magnetoterapia, tracción, compresero...). proximoMantenimiento se
+// recalcula al registrar un mantenimiento preventivo o una calibración.
+model Equipo {
+  id                          String       @id @default(uuid())
+  nombre                      String
+  categoria                   String?
+  marca                       String?
+  modelo                      String?
+  numeroSerie                 String?      @unique
+  ubicacion                   String?
+  fechaAdquisicion            DateTime?
+  garantiaHasta               DateTime?
+  proveedorServicio           String?
+  estado                      EstadoEquipo @default(OPERATIVO)
+  frecuenciaMantenimientoDias Int?
+  ultimoMantenimiento         DateTime?
+  proximoMantenimiento        DateTime?
+  notas                       String?
+  activo                      Boolean      @default(true)
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
+
+  mantenimientos MantenimientoEquipo[]
+
+  @@map("equipos")
+}
+
+model MantenimientoEquipo {
+  id              String            @id @default(uuid())
+  equipoId        String
+  tipo            TipoMantenimiento
+  fecha           DateTime
+  descripcion     String
+  realizadoPor    String?
+  costo           Decimal?          @db.Decimal(10, 2)
+  registradoPorId String
+  createdAt       DateTime          @default(now())
+
+  equipo        Equipo  @relation(fields: [equipoId], references: [id], onDelete: Cascade)
+  registradoPor Usuario @relation(fields: [registradoPorId], references: [id])
+
+  @@index([equipoId, fecha])
+  @@map("mantenimientos_equipo")
 }
 
 // ============================================================
