@@ -1,16 +1,38 @@
 import { api } from "./api";
+import type { EstadoCita } from "../types";
 
 export interface DashboardData {
   citasHoy: Array<{
     id: string;
     fechaHoraInicio: string;
-    estado: string;
-    paciente: { nombres: string; apellidos: string };
+    fechaHoraFin: string;
+    estado: EstadoCita;
+    numeroSesionEnGrupo: number | null;
+    totalSesionesGrupo: number | null;
+    paciente: { id: string; nombres: string; apellidos: string };
     profesional: { nombre: string; apellido: string };
+    tarifa: { nombreServicio: string } | null;
   }>;
+  citasManana: number;
   ingresosDelMes: string;
+  ingresosPeriodoAnterior: string;
+  ingresosPorMes: { mes: string; total: string }[];
   pacientesActivos: number;
   pacientesNuevosDelMes: number;
+  pacientesNuevosPeriodoAnterior: number;
+  asistenciaDelMes: { atendidas: number; inasistencias: number };
+  porCobrar: { facturas: number; saldo: string };
+  autorizaciones: {
+    pendientes: number;
+    porVencer: Array<{
+      id: string;
+      vigenciaHasta: string;
+      sesionesAutorizadas: number | null;
+      paciente: { id: string; nombres: string; apellidos: string };
+      aseguradora: { nombre: string };
+    }>;
+  };
+  cumpleanos: Array<{ id: string; nombres: string; apellidos: string; fechaNacimiento: string }>;
 }
 
 export async function obtenerDashboard(): Promise<DashboardData> {
