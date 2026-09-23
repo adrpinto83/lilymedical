@@ -4,6 +4,7 @@ import { Logo } from "../../components/layout/Logo";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { useAuth } from "../../context/AuthContext";
+import { HOME_POR_ROL } from "../../routes/ProtectedRoute";
 
 export function LoginPage() {
   const { login, loading } = useAuth();
@@ -16,8 +17,8 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await login(email, password);
-      navigate("/", { replace: true });
+      const usuario = await login(email, password);
+      navigate(HOME_POR_ROL[usuario.rol], { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
     }

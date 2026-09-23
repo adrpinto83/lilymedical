@@ -15,6 +15,10 @@ datasource db {
 enum RolUsuario {
   MEDICO
   ADMINISTRATIVO
+  // Fisiatra ayudante: registra la evolución y el progreso de los pacientes,
+  // pero no emite récipes ni constancias (actos que exigen colegiatura) ni ve
+  // la parte administrativa y financiera del consultorio.
+  FISIATRA_AYUDANTE
   PACIENTE
 }
 
@@ -120,6 +124,7 @@ model Usuario {
   constanciasEmitidas  ConstanciaMedica[] @relation("MedicoConstancias")
   plantillasReceta     PlantillaReceta[]
   planesEjerciciosEmitidos PlanEjercicios[] @relation("MedicoPlanesEjercicios")
+  fotosGaleriaSubidas      FotoGaleria[]    @relation("UsuarioFotosGaleria")
 
   @@map("usuarios")
 }
@@ -732,4 +737,24 @@ model ItemPlanEjercicio {
   plan PlanEjercicios @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("items_plan_ejercicios")
+}
+
+// Fotos de la galería pública de la landing. Se suben desde la app (no se
+// versionan en el repositorio) y se guardan en `uploads/galeria`; el archivo
+// físico se sirve estático porque la galería es contenido público.
+model FotoGaleria {
+  id             String   @id @default(uuid())
+  archivo        String   @unique // nombre del archivo dentro de uploads/galeria
+  nombreOriginal String
+  pie            String // pie de foto y texto alternativo de la imagen
+  orden          Int      @default(0)
+  visible        Boolean  @default(true)
+  subidoPorId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subidoPor Usuario? @relation("UsuarioFotosGaleria", fields: [subidoPorId], references: [id], onDelete: SetNull)
+
+  @@index([visible, orden])
+  @@map("fotos_galeria")
 }

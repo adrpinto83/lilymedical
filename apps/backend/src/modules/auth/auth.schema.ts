@@ -10,7 +10,7 @@ export const registerSchema = z.object({
   apellido: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  rol: z.enum(["MEDICO", "ADMINISTRATIVO", "PACIENTE"]),
+  rol: z.enum(["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE", "PACIENTE"]),
   especialidad: z.string().optional(),
 });
 
@@ -24,6 +24,14 @@ export const registroPacienteSchema = z.object({
   password: z.string().min(6),
 });
 
+// Las contraseñas nuevas se exigen más largas que el mínimo histórico de
+// login (6), que se mantiene para no invalidar credenciales ya existentes.
+export const cambiarPasswordSchema = z.object({
+  actual: z.string().min(1, "Indica tu contraseña actual"),
+  nueva: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres"),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
+export type CambiarPasswordInput = z.infer<typeof cambiarPasswordSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type RegistroPacienteInput = z.infer<typeof registroPacienteSchema>;

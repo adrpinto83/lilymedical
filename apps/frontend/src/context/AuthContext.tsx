@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, ReactNode 
 import { api, getErrorMessage } from "../services/api";
 import { RolUsuario } from "../types";
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   nombre: string;
   apellido: string;
@@ -13,7 +13,7 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   registrarPaciente: (documento: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("lilymedical_token", data.token);
       localStorage.setItem("lilymedical_user", JSON.stringify(data.usuario));
       setUser(data.usuario);
+      return data.usuario as AuthUser;
     } catch (err) {
       throw new Error(getErrorMessage(err));
     } finally {

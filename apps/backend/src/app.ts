@@ -28,6 +28,7 @@ import recordatoriosRoutes from "./modules/recordatorios/recordatorios.routes";
 import portalPacienteRoutes from "./modules/portal-paciente/portal-paciente.routes";
 import backupsRoutes from "./modules/backups/backups.routes";
 import equiposRoutes from "./modules/equipos/equipos.routes";
+import galeriaRoutes from "./modules/galeria/galeria.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -51,6 +52,8 @@ export function createApp() {
   // estática. El resto de los adjuntos siguen protegidos vía /api/adjuntos.
   const uploadsDir = path.resolve(process.cwd(), process.env.UPLOADS_DIR || "uploads");
   app.use("/uploads/firmas", express.static(path.join(uploadsDir, "firmas")));
+  // La galería es contenido público de la landing.
+  app.use("/uploads/galeria", express.static(path.join(uploadsDir, "galeria")));
 
   app.use("/api/auth", authRoutes);
   app.use("/api/pacientes", pacientesRoutes);
@@ -75,6 +78,23 @@ export function createApp() {
   app.use("/api/portal", portalPacienteRoutes);
   app.use("/api/backups", backupsRoutes);
   app.use("/api/equipos", equiposRoutes);
+  app.use("/api/galeria", galeriaRoutes);
+
+  // En producción el mismo proceso puede servir el SPA compilado: así la app
+  // viaja por un solo origen (sin CORS) y no hace falta un servidor web
+  // delante. En desarrollo la variable no se define y Vite sigue mandando.
+  const frontendDir = process.env.FRONTEND_DIR;
+  if (frontendDir) {
+    app.use(express.static(frontendDir));
+    // Rutas del enrutador de React: cualquier GET que no sea API ni archivo
+    // subido devuelve el index para que el SPA resuelva la navegación.
+    app.use((req, res, next) => {
+      if (req.method !== "GET" || req.path.startsWith("/api/") || req.path.startsWith("/uploads/")) {
+        return next();
+      }
+      res.sendFile(path.join(frontendDir, "index.html"));
+    });
+  }
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Recurso no encontrado" });

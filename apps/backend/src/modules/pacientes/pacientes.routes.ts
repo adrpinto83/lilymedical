@@ -13,7 +13,12 @@ const router = Router();
 
 // Pacientes: accesible por MEDICO y ADMINISTRATIVO (datos no clínicos).
 // El detalle clínico vive en /historias-clinicas, protegido aparte.
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+// El fisiatra ayudante consulta las fichas para dar seguimiento, pero no
+// crea ni edita pacientes ni toca la parte de aseguradoras.
+router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
+
+const soloGestion = roleGuard("MEDICO", "ADMINISTRATIVO");
+
 
 router.get("/", async (req, res) => {
   const busqueda = typeof req.query.q === "string" ? req.query.q : undefined;
@@ -26,29 +31,30 @@ router.get("/:id", async (req, res) => {
   res.json(paciente);
 });
 
-router.post("/", validateBody(crearPacienteSchema), async (req, res) => {
+router.post("/", soloGestion, validateBody(crearPacienteSchema), async (req, res) => {
   const paciente = await pacientesService.crearPaciente(req.body);
   res.status(201).json(paciente);
 });
 
-router.put("/:id", validateBody(actualizarPacienteSchema), async (req, res) => {
+router.put("/:id", soloGestion, validateBody(actualizarPacienteSchema), async (req, res) => {
   const paciente = await pacientesService.actualizarPaciente(req.params.id, req.body);
   res.json(paciente);
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", soloGestion, async (req, res) => {
   await pacientesService.desactivarPaciente(req.params.id);
   res.status(204).send();
 });
 
 // ---------- Aseguradoras del paciente (primaria/secundaria) ----------
 
-router.get("/:id/aseguradoras", async (req, res) => {
+router.get("/:id/aseguradoras", soloGestion, async (req, res) => {
   res.json(await pacientesService.listarAseguradorasDePaciente(req.params.id));
 });
 
 router.post(
   "/:id/aseguradoras",
+  soloGestion,
   validateBody(pacienteAseguradoraSchema),
   async (req, res) => {
     const relacion = await pacientesService.agregarAseguradoraAPaciente(req.params.id, req.body);
@@ -58,6 +64,7 @@ router.post(
 
 router.put(
   "/:id/aseguradoras/:relacionId",
+  soloGestion,
   validateBody(pacienteAseguradoraSchema.partial()),
   async (req, res) => {
     const relacion = await pacientesService.actualizarAseguradoraDePaciente(
@@ -69,7 +76,7 @@ router.put(
   }
 );
 
-router.delete("/:id/aseguradoras/:relacionId", async (req, res) => {
+router.delete("/:id/aseguradoras/:relacionId", soloGestion, async (req, res) => {
   await pacientesService.eliminarAseguradoraDePaciente(req.params.id, req.params.relacionId);
   res.status(204).send();
 });

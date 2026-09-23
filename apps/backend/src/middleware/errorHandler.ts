@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
+import { MulterError } from "multer";
 import { HttpError } from "../lib/http-error";
 
 export function errorHandler(
@@ -17,6 +18,17 @@ export function errorHandler(
       error: "Datos inválidos",
       detalles: err.flatten().fieldErrors,
     });
+  }
+
+  // Multer lanza sus propios errores al subir archivos (tamaño excedido,
+  // campo inesperado). Sin esto caían en el 500 genérico y el usuario no
+  // llegaba a saber que su archivo pesaba de más.
+  if (err instanceof MulterError) {
+    const mensaje =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "El archivo supera el tamaño máximo permitido"
+        : `No se pudo procesar el archivo: ${err.message}`;
+    return res.status(400).json({ error: mensaje });
   }
 
   // Errores de restricción única de Prisma, etc.

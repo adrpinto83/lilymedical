@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { obtenerMiPerfil, actualizarMiPerfil, MiPerfil } from "../../services/portal";
 import { getErrorMessage } from "../../services/api";
+import { CambiarPasswordCard } from "../../components/cuenta/CambiarPasswordCard";
 
 export function PortalPerfilPage() {
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
@@ -122,6 +123,8 @@ export function PortalPerfilPage() {
           </form>
         </CardBody>
       </Card>
+
+      <CambiarPasswordCard />
     </div>
   );
 }

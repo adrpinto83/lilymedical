@@ -2,7 +2,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma";
 import { signToken } from "../../lib/jwt";
 import { HttpError } from "../../lib/http-error";
-import { LoginInput, RegisterInput, RegistroPacienteInput } from "./auth.schema";
+import {
+  CambiarPasswordInput,
+  LoginInput,
+  RegisterInput,
+  RegistroPacienteInput,
+} from "./auth.schema";
 
 // Protección contra fuerza bruta (Fase 13): tras LOGIN_MAX_INTENTOS contraseñas
 // incorrectas consecutivas, la cuenta queda bloqueada por LOGIN_BLOQUEO_MINUTOS.
@@ -169,4 +174,30 @@ export async function register(data: RegisterInput) {
     email: usuario.email,
     rol: usuario.rol,
   };
+}
+
+/**
+ * Cambio de contraseña por parte del propio usuario.
+ *
+ * Exige la contraseña actual para que una sesión robada no baste para
+ * secuestrar la cuenta, y de paso limpia el bloqueo por intentos fallidos.
+ */
+export async function cambiarPassword(usuarioId: string, { actual, nueva }: CambiarPasswordInput) {
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) throw new HttpError(404, "Usuario no encontrado");
+
+  const coincide = await bcrypt.compare(actual, usuario.passwordHash);
+  if (!coincide) throw new HttpError(400, "La contraseña actual no es correcta");
+  if (actual === nueva) {
+    throw new HttpError(400, "La nueva contraseña debe ser distinta de la actual");
+  }
+
+  await prisma.usuario.update({
+    where: { id: usuarioId },
+    data: {
+      passwordHash: await bcrypt.hash(nueva, 10),
+      intentosFallidos: 0,
+      bloqueadoHasta: null,
+    },
+  });
 }

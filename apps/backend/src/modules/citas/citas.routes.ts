@@ -13,8 +13,12 @@ import * as citasService from "./citas.service";
 
 const router = Router();
 
-// Agenda: accesible por MEDICO y ADMINISTRATIVO (sin datos clínicos)
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+// Agenda: sin datos clínicos. El fisiatra ayudante la consulta para saber a
+// quién atiende; agendar y cancelar sigue siendo de médico y administrativo.
+router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
+
+const soloGestion = roleGuard("MEDICO", "ADMINISTRATIVO");
+
 
 router.get("/", async (req, res) => {
   const { desde, hasta, profesionalId } = req.query;
@@ -29,13 +33,14 @@ router.get("/", async (req, res) => {
   res.json(citas);
 });
 
-router.post("/", validateBody(crearCitaSchema), async (req, res) => {
+router.post("/", soloGestion, validateBody(crearCitaSchema), async (req, res) => {
   const cita = await citasService.crearCita(req.body);
   res.status(201).json(cita);
 });
 
 router.post(
   "/recurrentes",
+  soloGestion,
   validateBody(crearCitasRecurrentesSchema),
   async (req, res) => {
     const citas = await citasService.crearCitasRecurrentes(req.body);
@@ -43,12 +48,12 @@ router.post(
   }
 );
 
-router.put("/:id", validateBody(actualizarCitaSchema), async (req, res) => {
+router.put("/:id", soloGestion, validateBody(actualizarCitaSchema), async (req, res) => {
   const cita = await citasService.actualizarCita(req.params.id, req.body);
   res.json(cita);
 });
 
-router.post("/grupo/:grupoRecurrenciaId/cancelar", async (req, res) => {
+router.post("/grupo/:grupoRecurrenciaId/cancelar", soloGestion, async (req, res) => {
   const resultado = await citasService.cancelarGrupoRecurrente(req.params.grupoRecurrenciaId);
   res.json(resultado);
 });
@@ -66,12 +71,12 @@ router.get("/bloqueos", async (req, res) => {
   res.json(bloqueos);
 });
 
-router.post("/bloqueos", validateBody(crearBloqueoSchema), async (req, res) => {
+router.post("/bloqueos", soloGestion, validateBody(crearBloqueoSchema), async (req, res) => {
   const bloqueo = await citasService.crearBloqueo(req.body);
   res.status(201).json(bloqueo);
 });
 
-router.delete("/bloqueos/:id", async (req, res) => {
+router.delete("/bloqueos/:id", soloGestion, async (req, res) => {
   await citasService.eliminarBloqueo(req.params.id);
   res.status(204).send();
 });

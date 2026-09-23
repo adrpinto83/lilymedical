@@ -3,7 +3,12 @@ import { validateBody } from "../../middleware/validate";
 import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
 import { loginRateLimit } from "../../middleware/rateLimit";
-import { loginSchema, registerSchema, registroPacienteSchema } from "./auth.schema";
+import {
+  cambiarPasswordSchema,
+  loginSchema,
+  registerSchema,
+  registroPacienteSchema,
+} from "./auth.schema";
 import * as authService from "./auth.service";
 
 const router = Router();
@@ -44,5 +49,17 @@ router.get("/me", requireAuth, async (req, res) => {
   const usuario = await authService.obtenerPerfilActual(req.user!.sub);
   res.json({ usuario });
 });
+
+// Cualquier usuario autenticado cambia su propia contraseña, sea médico,
+// administrativo, fisiatra ayudante o paciente del portal.
+router.put(
+  "/password",
+  requireAuth,
+  validateBody(cambiarPasswordSchema),
+  async (req, res) => {
+    await authService.cambiarPassword(req.user!.sub, req.body);
+    res.status(204).send();
+  }
+);
 
 export default router;

@@ -6,9 +6,13 @@ import { PerfilMedico } from "../../types";
 import { obtenerPerfilMedico, actualizarPerfilMedico, subirFirma } from "../../services/perfilMedico";
 import { getErrorMessage } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { CambiarPasswordCard } from "../../components/cuenta/CambiarPasswordCard";
 
 export function PerfilMedicoPage() {
   const { user } = useAuth();
+  // El membrete y la firma son del médico. El resto del personal abre esta
+  // misma página solo para gestionar su cuenta.
+  const esMedico = user?.rol === "MEDICO";
   const [perfil, setPerfil] = useState<PerfilMedico | null>(null);
   const [form, setForm] = useState({
     colegiatura: "",
@@ -42,8 +46,8 @@ export function PerfilMedicoPage() {
   }
 
   useEffect(() => {
-    cargar();
-  }, []);
+    if (esMedico) cargar();
+  }, [esMedico]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -76,6 +80,20 @@ export function PerfilMedicoPage() {
       setSubiendoFirma(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  if (!esMedico) {
+    return (
+      <div className="flex max-w-2xl flex-col gap-6">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Mi cuenta</h1>
+          <p className="text-sm text-slate-500">
+            {user?.nombre} {user?.apellido} · {user?.email}
+          </p>
+        </div>
+        <CambiarPasswordCard />
+      </div>
+    );
   }
 
   if (!perfil) return <p className="text-sm text-slate-500">Cargando...</p>;
@@ -205,6 +223,8 @@ export function PerfilMedicoPage() {
           </div>
         </CardBody>
       </Card>
+
+      <CambiarPasswordCard />
     </div>
   );
 }

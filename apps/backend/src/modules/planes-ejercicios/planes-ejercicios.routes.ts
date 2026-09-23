@@ -12,8 +12,11 @@ import { generarPlanEjerciciosPdf } from "./planes-ejercicios.pdf";
 
 const router = Router();
 
-// Plan de tratamiento: contenido clínico, solo MEDICO
-router.use(requireAuth, roleGuard("MEDICO"));
+// El plan lo indica el médico; el fisiatra ayudante lo consulta para aplicarlo.
+router.use(requireAuth, roleGuard("MEDICO", "FISIATRA_AYUDANTE"));
+
+const soloMedico = roleGuard("MEDICO");
+
 
 router.get("/paciente/:pacienteId", auditLog("VER"), async (req, res) => {
   const planes = await prisma.planEjercicios.findMany({
@@ -26,6 +29,7 @@ router.get("/paciente/:pacienteId", auditLog("VER"), async (req, res) => {
 
 router.post(
   "/paciente/:pacienteId",
+  soloMedico,
   auditLog("CREAR"),
   validateBody(crearPlanEjerciciosSchema),
   async (req, res) => {

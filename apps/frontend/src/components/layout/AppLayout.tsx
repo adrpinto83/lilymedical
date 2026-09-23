@@ -3,31 +3,39 @@ import { NavLink, Outlet } from "react-router-dom";
 import clsx from "clsx";
 import { Logo } from "./Logo";
 import { useAuth } from "../../context/AuthContext";
+import { ETIQUETA_ROL, RolUsuario } from "../../types";
 
 interface NavItem {
   to: string;
   label: string;
   icon: string;
-  roles: Array<"MEDICO" | "ADMINISTRATIVO">;
+  roles: RolUsuario[];
 }
 
+const TODO_EL_PERSONAL: RolUsuario[] = ["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"];
+const GESTION: RolUsuario[] = ["MEDICO", "ADMINISTRATIVO"];
+
 const navItems: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: "📊", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/agenda", label: "Agenda", icon: "🗓️", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/facturacion", label: "Facturación", icon: "🧾", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/reportes", label: "Reportes", icon: "📈", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/inventario", label: "Inventario", icon: "🛠️", roles: ["MEDICO", "ADMINISTRATIVO"] },
-  { to: "/perfil", label: "Mi perfil", icon: "🩺", roles: ["MEDICO"] },
+  { to: "/dashboard", label: "Dashboard", icon: "📊", roles: GESTION },
+  { to: "/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑", roles: TODO_EL_PERSONAL },
+  { to: "/agenda", label: "Agenda", icon: "🗓️", roles: TODO_EL_PERSONAL },
+  { to: "/facturacion", label: "Facturación", icon: "🧾", roles: GESTION },
+  { to: "/reportes", label: "Reportes", icon: "📈", roles: GESTION },
+  { to: "/inventario", label: "Inventario", icon: "🛠️", roles: GESTION },
+  { to: "/galeria", label: "Galería web", icon: "🖼️", roles: GESTION },
+  { to: "/personal", label: "Personal", icon: "👥", roles: ["MEDICO"] },
+  { to: "/perfil", label: "Mi cuenta", icon: "🩺", roles: TODO_EL_PERSONAL },
 ];
 
 export function AppLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const visibleItems = navItems.filter(
-    (item) => !user || item.roles.includes(user.rol as "MEDICO" | "ADMINISTRATIVO")
-  );
+  const visibleItems = navItems
+    .filter((item) => !user || item.roles.includes(user.rol))
+    .map((item) =>
+      item.to === "/perfil" && user?.rol === "MEDICO" ? { ...item, label: "Mi perfil" } : item
+    );
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -48,7 +56,7 @@ export function AppLayout() {
               <span className="hidden text-sm text-slate-600 sm:block">
                 {user.nombre} {user.apellido}{" "}
                 <span className="ml-1 rounded-full bg-lily-blue-50 px-2 py-0.5 text-xs font-medium text-lily-blue-700">
-                  {user.rol === "MEDICO" ? "Médico" : "Administrativo"}
+                  {ETIQUETA_ROL[user.rol]}
                 </span>
               </span>
             )}
@@ -74,7 +82,7 @@ export function AppLayout() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === "/"}
+                end={item.to === "/dashboard"}
                 onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   clsx(

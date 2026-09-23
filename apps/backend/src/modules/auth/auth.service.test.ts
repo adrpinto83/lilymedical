@@ -11,7 +11,7 @@ vi.mock("../../lib/prisma", () => ({
 }));
 
 import { prisma } from "../../lib/prisma";
-import { login } from "./auth.service";
+import { login, cambiarPassword } from "./auth.service";
 import { HttpError } from "../../lib/http-error";
 
 const usuarioBase = {
@@ -97,5 +97,49 @@ describe("auth.service.login", () => {
     await expect(login({ email: "nadie@x.com", password: "correcta123" })).rejects.toMatchObject({
       status: 401,
     });
+  });
+});
+
+describe("auth.service.cambiarPassword", () => {
+  it("cambia la contraseña y limpia el bloqueo por intentos fallidos", async () => {
+    const usuario = { ...usuarioBase, intentosFallidos: 2, bloqueadoHasta: new Date() };
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue(usuario as any);
+
+    await cambiarPassword("u1", { actual: "correcta123", nueva: "nuevaClave2026" });
+
+    const datos = vi.mocked(prisma.usuario.update).mock.calls[0][0].data as {
+      passwordHash: string;
+      intentosFallidos: number;
+      bloqueadoHasta: null;
+    };
+    expect(await bcrypt.compare("nuevaClave2026", datos.passwordHash)).toBe(true);
+    expect(datos.intentosFallidos).toBe(0);
+    expect(datos.bloqueadoHasta).toBeNull();
+  });
+
+  it("rechaza si la contraseña actual no coincide", async () => {
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue({ ...usuarioBase } as any);
+
+    await expect(
+      cambiarPassword("u1", { actual: "equivocada", nueva: "nuevaClave2026" })
+    ).rejects.toThrow(HttpError);
+    expect(prisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza si la nueva contraseña es igual a la actual", async () => {
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue({ ...usuarioBase } as any);
+
+    await expect(
+      cambiarPassword("u1", { actual: "correcta123", nueva: "correcta123" })
+    ).rejects.toThrow("La nueva contraseña debe ser distinta de la actual");
+    expect(prisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("falla si el usuario no existe", async () => {
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue(null as any);
+
+    await expect(
+      cambiarPassword("desconocido", { actual: "x", nueva: "nuevaClave2026" })
+    ).rejects.toThrow("Usuario no encontrado");
   });
 });

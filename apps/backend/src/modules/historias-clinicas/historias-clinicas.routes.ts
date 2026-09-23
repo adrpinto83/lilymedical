@@ -26,9 +26,13 @@ function parseFechaLocal(valor: string, finDelDia: boolean): Date {
 
 const router = Router();
 
-// Solo personal MÉDICO accede al detalle clínico. El staff administrativo
-// queda fuera de todo este router (ver requisitos de privacidad).
-router.use(requireAuth, roleGuard("MEDICO"));
+// Detalle clínico: el staff administrativo queda fuera de todo este router
+// (requisitos de privacidad). El fisiatra ayudante lee la historia para dar
+// seguimiento, pero editarla y evaluar sigue siendo del médico.
+router.use(requireAuth, roleGuard("MEDICO", "FISIATRA_AYUDANTE"));
+
+const soloMedico = roleGuard("MEDICO");
+
 
 router.get(
   "/paciente/:pacienteId",
@@ -65,6 +69,7 @@ router.get("/paciente/:pacienteId/pdf", auditLog("VER"), async (req, res) => {
 
 router.put(
   "/paciente/:pacienteId",
+  soloMedico,
   auditLog("EDITAR"),
   validateBody(actualizarHistoriaSchema),
   async (req, res) => {
@@ -75,6 +80,7 @@ router.put(
 
 router.post(
   "/paciente/:pacienteId/evaluaciones",
+  soloMedico,
   auditLog("CREAR"),
   validateBody(crearEvaluacionSchema),
   async (req, res) => {

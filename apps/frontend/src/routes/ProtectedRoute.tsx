@@ -2,15 +2,22 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { RolUsuario } from "../types";
 
+// "/" es la landing pública, así que ningún rol aterriza ahí tras iniciar
+// sesión. Cada uno va a la primera pantalla que sí puede ver: si un rol
+// rebotara a una ruta que también tiene vedada, se produciría un bucle.
+export const HOME_POR_ROL: Record<RolUsuario, string> = {
+  MEDICO: "/dashboard",
+  ADMINISTRATIVO: "/dashboard",
+  FISIATRA_AYUDANTE: "/pacientes",
+  PACIENTE: "/portal",
+};
+
 export function ProtectedRoute({ allowedRoles }: { allowedRoles?: RolUsuario[] }) {
   const { user } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(user.rol)) {
-    // Cada rol tiene su propio "home": el personal usa "/" (Dashboard) y el
-    // paciente "/portal", para no rebotar a una ruta que también le está
-    // vedada (lo que produciría un loop de redirects).
-    return <Navigate to={user.rol === "PACIENTE" ? "/portal" : "/"} replace />;
+    return <Navigate to={HOME_POR_ROL[user.rol]} replace />;
   }
 
   return <Outlet />;

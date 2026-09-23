@@ -1,4 +1,11 @@
-export type RolUsuario = "MEDICO" | "ADMINISTRATIVO" | "PACIENTE";
+export type RolUsuario = "MEDICO" | "ADMINISTRATIVO" | "FISIATRA_AYUDANTE" | "PACIENTE";
+
+export const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  MEDICO: "Médico",
+  ADMINISTRATIVO: "Administrativo",
+  FISIATRA_AYUDANTE: "Fisiatra ayudante",
+  PACIENTE: "Paciente",
+};
 export type SexoPaciente = "MASCULINO" | "FEMENINO" | "OTRO";
 export type EstadoCita = "PROGRAMADA" | "CONFIRMADA" | "ATENDIDA" | "CANCELADA" | "NO_ASISTIO";
 export type EstadoFactura = "PENDIENTE" | "PAGADA" | "PARCIAL" | "ANULADA";

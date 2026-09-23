@@ -8,8 +8,12 @@ import * as sesionesService from "./sesiones.service";
 
 const router = Router();
 
-// Las notas de evolución son contenido clínico: solo MEDICO
-router.use(requireAuth, roleGuard("MEDICO"));
+// Las notas de evolución son el trabajo diario del fisiatra ayudante: registra
+// y corrige el progreso del paciente. Borrar una nota queda para el médico.
+router.use(requireAuth, roleGuard("MEDICO", "FISIATRA_AYUDANTE"));
+
+const soloMedico = roleGuard("MEDICO");
+
 
 router.post("/", auditLog("CREAR"), validateBody(crearSesionSchema), async (req, res) => {
   const sesion = await sesionesService.crearSesion(req.user!.sub, req.body);
@@ -26,7 +30,7 @@ router.put(
   }
 );
 
-router.delete("/:id", auditLog("ELIMINAR"), async (req, res) => {
+router.delete("/:id", soloMedico, auditLog("ELIMINAR"), async (req, res) => {
   await sesionesService.eliminarSesion(req.params.id);
   res.status(204).send();
 });
