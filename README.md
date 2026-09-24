@@ -107,6 +107,15 @@ lilymedical/
   - **Insumos:** alta con stock inicial, edición, entradas y salidas (sin permitir stock negativo, incluso con registros simultáneos), historial de movimientos y marca de "Reponer" al llegar al stock mínimo.
   - **Alertas en el Dashboard:** equipos con mantenimiento vencido o por vencer (ventana `EQUIPOS_DIAS_AVISO`, 15 días por defecto), equipos fuera de servicio e insumos con stock bajo.
 
+- [x] **Fase 17** — Integridad de facturación y reglas de convenio:
+  - **Reglas de aseguradora aplicadas:** al facturar a una aseguradora se exige que el paciente la tenga registrada como seguro; si el convenio `requiereAutorizacion`, la factura se vincula a una autorización APROBADA y vigente con sesiones disponibles (la que vence primero) y se rechaza si no la hay. El cupo consumido se cuenta por las unidades facturadas (sin anuladas) y se muestra en la pestaña "Seguros" ("X de Y sesiones facturadas"). La cobertura respeta `topeMontoPorSesion` × unidades.
+  - **Reparto congelado:** `montoAseguradora`/`montoPaciente` se guardan en la factura al emitirla (la migración rellena las existentes con la regla anterior), así cambiar el % o el tope de un convenio no altera facturas ya emitidas.
+  - **Correlativos atómicos:** facturas (`LM-`), recetas (`RX-`) y constancias (`CM-`) toman su número de la tabla `correlativos` con un `INSERT ... ON CONFLICT` atómico; emisiones simultáneas ya no chocan y una factura rechazada no consume número.
+  - **Pagos seguros:** registrar/anular pagos y anular facturas bloquean la fila de la factura (`SELECT ... FOR UPDATE`), así dos cobros simultáneos no superan el total.
+  - **Anulación de pagos:** un pago no se borra, se anula con motivo (`POST /api/facturacion/facturas/:id/pagos/:pagoId/anular`) guardando quién y cuándo; deja de contar en saldo, estado de cuenta, dashboard e ingresos. Una factura con pagos vigentes no se puede anular: primero se anulan (reembolsan) sus pagos.
+  - **Factura en PDF** (`GET /api/facturacion/facturas/:id/pdf`) con membrete del consultorio, detalle, reparto aseguradora/paciente y pagos; se aclara que es un comprobante interno y no sustituye la factura fiscal.
+  - **Sesiones ↔ citas:** la asistencia de la nota de evolución define el estado de la cita (asistió → ATENDIDA, inasistió → NO_ASISTIO, canceló → CANCELADA), también al corregirla; borrar la nota devuelve la cita a PROGRAMADA; no se puede vincular la cita de otro paciente.
+
 ## Tests
 
 ```bash

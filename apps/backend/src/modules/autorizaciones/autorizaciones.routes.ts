@@ -5,6 +5,7 @@ import { validateBody } from "../../middleware/validate";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import { crearAutorizacionSchema, actualizarAutorizacionSchema } from "./autorizaciones.schema";
+import { includeConsumoAutorizacion, sesionesUsadas } from "../facturacion/facturacion.service";
 
 const router = Router();
 
@@ -13,10 +14,20 @@ router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
 router.get("/paciente/:pacienteId", async (req, res) => {
   const autorizaciones = await prisma.autorizacionSeguro.findMany({
     where: { pacienteId: req.params.pacienteId },
-    include: { aseguradora: true },
+    include: { aseguradora: true, ...includeConsumoAutorizacion },
     orderBy: { fechaSolicitud: "desc" },
   });
-  res.json(autorizaciones);
+  // Cupo consumido según las facturas emitidas contra cada autorización.
+  res.json(
+    autorizaciones.map(({ facturas, ...a }) => {
+      const usadas = sesionesUsadas({ ...a, facturas });
+      return {
+        ...a,
+        sesionesUsadas: usadas,
+        sesionesRestantes: a.sesionesAutorizadas === null ? null : a.sesionesAutorizadas - usadas,
+      };
+    })
+  );
 });
 
 router.post("/", validateBody(crearAutorizacionSchema), async (req, res) => {

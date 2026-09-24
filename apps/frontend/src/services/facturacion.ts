@@ -52,6 +52,18 @@ export async function registrarPago(
   return data;
 }
 
+export async function anularPago(facturaId: string, pagoId: string, motivo: string): Promise<Pago> {
+  const { data } = await api.post<Pago>(`/facturacion/facturas/${facturaId}/pagos/${pagoId}/anular`, { motivo });
+  return data;
+}
+
+// Igual que las recetas: el PDF exige el token, así que se baja como blob.
+export async function abrirPdfFactura(id: string): Promise<void> {
+  const { data } = await api.get(`/facturacion/facturas/${id}/pdf`, { responseType: "blob" });
+  const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+  window.open(url, "_blank");
+}
+
 export async function estadoDeCuenta(pacienteId: string) {
   const { data } = await api.get(`/facturacion/pacientes/${pacienteId}/estado-cuenta`);
   return data;

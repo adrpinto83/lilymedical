@@ -58,3 +58,38 @@ body {
 .font-display {
   font-family: var(--font-display);
 }
+
+/* Dedicatoria de la portada: entrada suave de la tarjeta y un leve vaivén del
+   ramo. Se desactiva para quien pidió reducir el movimiento. */
+@keyframes dedicatoria-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dedicatoria-vaiven {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+.dedicatoria-entrada {
+  animation: dedicatoria-entrada 0.5s ease-out both;
+}
+.dedicatoria-ramo {
+  transform-origin: 50% 85%;
+  animation: dedicatoria-vaiven 4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dedicatoria-entrada,
+  .dedicatoria-ramo {
+    animation: none;
+  }
+}

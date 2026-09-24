@@ -9,8 +9,9 @@ export const crearSesionSchema = z.object({
   fecha: z.coerce.date().optional(),
 });
 
+// El vínculo con la cita se fija al crear la sesión y no se reasigna.
 export const actualizarSesionSchema = crearSesionSchema
-  .omit({ pacienteId: true })
+  .omit({ pacienteId: true, citaId: true })
   .partial();
 
 export type CrearSesionInput = z.infer<typeof crearSesionSchema>;

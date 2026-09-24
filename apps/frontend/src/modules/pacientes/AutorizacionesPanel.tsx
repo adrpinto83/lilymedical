@@ -109,7 +109,9 @@ export function AutorizacionesPanel({ pacienteId }: { pacienteId: string }) {
                   </p>
                   <p className="text-slate-500">
                     {a.numeroAutorizacion ? `N° ${a.numeroAutorizacion}` : "Sin número asignado"}
-                    {a.sesionesAutorizadas ? ` · ${a.sesionesAutorizadas} sesión(es)` : ""}
+                    {a.sesionesAutorizadas
+                      ? ` · ${a.sesionesUsadas ?? 0} de ${a.sesionesAutorizadas} sesión(es) facturadas`
+                      : ""}
                     {a.vigenciaHasta ? ` · vigente hasta ${format(new Date(a.vigenciaHasta), "dd/MM/yyyy")}` : ""}
                   </p>
                 </div>

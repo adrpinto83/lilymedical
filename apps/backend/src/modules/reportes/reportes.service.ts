@@ -1,6 +1,5 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { calcularSplitFactura } from "../facturacion/facturacion.service";
 
 function inicioFin(fecha: Date) {
   const inicio = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
@@ -79,7 +78,7 @@ export async function obtenerDashboard() {
       where: { fechaHoraInicio: { gte: finHoy, lt: finManana }, estado: { in: ["PROGRAMADA", "CONFIRMADA"] } },
     }),
     prisma.pago.findMany({
-      where: { fecha: { gte: inicioHistorico, lt: finMes } },
+      where: { fecha: { gte: inicioHistorico, lt: finMes }, anulado: false },
       select: { fecha: true, monto: true },
     }),
     prisma.paciente.count({ where: { activo: true } }),
@@ -92,7 +91,7 @@ export async function obtenerDashboard() {
     }),
     prisma.factura.findMany({
       where: { estado: { in: ["PENDIENTE", "PARCIAL"] } },
-      select: { total: true, pagos: { select: { monto: true } } },
+      select: { total: true, pagos: { where: { anulado: false }, select: { monto: true } } },
     }),
     prisma.autorizacionSeguro.count({ where: { estado: "PENDIENTE" } }),
     prisma.autorizacionSeguro.findMany({
@@ -144,7 +143,7 @@ export async function obtenerDashboard() {
 
 export async function reporteIngresosPorPeriodo(desde: Date, hasta: Date) {
   const pagos = await prisma.pago.findMany({
-    where: { fecha: { gte: desde, lte: hasta } },
+    where: { fecha: { gte: desde, lte: hasta }, anulado: false },
     include: { factura: { select: { numeroFactura: true, pacienteId: true } } },
     orderBy: { fecha: "asc" },
   });
@@ -190,7 +189,7 @@ export async function reporteServiciosMasSolicitados(desde: Date, hasta: Date) {
 }
 
 // Facturas cobradas (total o parcialmente) a una aseguradora en un período,
-// con el split paciente/aseguradora aplicado — insumo para el cobro/reclamo
+// con el split paciente/aseguradora congelado al emitirlas — insumo para el cobro/reclamo
 // que se envía al convenio (PDVSA-HCM, Sicoprosa, etc.).
 export async function reporteCobrosAseguradora(desde: Date, hasta: Date, aseguradoraId?: string) {
   const facturas = await prisma.factura.findMany({
@@ -206,8 +205,5 @@ export async function reporteCobrosAseguradora(desde: Date, hasta: Date, asegura
     orderBy: [{ aseguradoraId: "asc" }, { fecha: "asc" }],
   });
 
-  return facturas.map((f) => ({
-    ...f,
-    ...calcularSplitFactura(f),
-  }));
+  return facturas;
 }

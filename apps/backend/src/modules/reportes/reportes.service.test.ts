@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 
 vi.mock("../../lib/prisma", () => ({ prisma: {} }));
-vi.mock("../facturacion/facturacion.service", () => ({ calcularSplitFactura: vi.fn() }));
 
 import { agruparIngresosPorMes } from "./reportes.service";
 

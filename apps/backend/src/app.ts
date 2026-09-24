@@ -34,6 +34,12 @@ import { errorHandler } from "./middleware/errorHandler";
 export function createApp() {
   const app = express();
 
+  // En producción la app vive detrás de cloudflared/nginx en loopback: sin
+  // esto req.ip es siempre 127.0.0.1, así que el límite de intentos de login
+  // se compartía entre todos los usuarios y la auditoría no guardaba la IP
+  // real. Confiar solo en loopback toma la IP que agrega el proxy local.
+  app.set("trust proxy", process.env.TRUST_PROXY || "loopback");
+
   app.use(helmet());
   app.use(
     cors({

@@ -29,6 +29,20 @@ function timestamp(): string {
   return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "");
 }
 
+// DATABASE_URL trae parámetros propios de Prisma (`?schema=public`) que
+// pg_dump rechaza, y la contraseña embebida terminaba impresa en el log cuando
+// el comando fallaba. Se quitan esos parámetros y la contraseña viaja por
+// PGPASSWORD, fuera de la línea de comandos.
+const PARAMETROS_PRISMA = ["schema", "connection_limit", "pool_timeout", "pgbouncer", "statement_cache_size", "socket_timeout"];
+
+export function conexionPgDump(databaseUrl: string): { dbname: string; env: NodeJS.ProcessEnv } {
+  const url = new URL(databaseUrl);
+  for (const p of PARAMETROS_PRISMA) url.searchParams.delete(p);
+  const password = decodeURIComponent(url.password);
+  url.password = "";
+  return { dbname: url.toString(), env: { ...process.env, ...(password && { PGPASSWORD: password }) } };
+}
+
 // Ejecuta pg_dump contra DATABASE_URL y deja el volcado (formato custom,
 // comprimido y restaurable con pg_restore) en BACKUP_DIR. Requiere que el
 // binario pg_dump (paquete postgresql-client) esté disponible en el servidor.
@@ -44,17 +58,20 @@ export async function crearBackup(): Promise<BackupInfo> {
   const archivo = `${PREFIJO}${timestamp()}${EXTENSION}`;
   const rutaCompleta = path.join(dir, archivo);
 
+  const { dbname, env } = conexionPgDump(databaseUrl);
   try {
-    await execFileAsync("pg_dump", ["--dbname", databaseUrl, "-Fc", "-f", rutaCompleta]);
+    await execFileAsync("pg_dump", ["--dbname", dbname, "-Fc", "-f", rutaCompleta], { env });
   } catch (err) {
-    const nodeErr = err as NodeJS.ErrnoException;
+    // pg_dump deja un archivo vacío o a medias al fallar: no debe pasar por backup válido.
+    await fs.unlink(rutaCompleta).catch(() => undefined);
+    const nodeErr = err as NodeJS.ErrnoException & { stderr?: string };
     if (nodeErr.code === "ENOENT") {
       throw new HttpError(
         500,
         "pg_dump no está instalado en el servidor. Instala el paquete postgresql-client para habilitar los backups."
       );
     }
-    throw new HttpError(500, `No se pudo generar el backup: ${nodeErr.message}`);
+    throw new HttpError(500, `No se pudo generar el backup: ${nodeErr.stderr?.trim() || nodeErr.message}`);
   }
 
   await limpiarBackupsAntiguos();

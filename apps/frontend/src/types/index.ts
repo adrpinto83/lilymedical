@@ -62,6 +62,8 @@ export interface AutorizacionSeguro {
   vigenciaHasta?: string | null;
   notas?: string | null;
   aseguradora?: Aseguradora;
+  sesionesUsadas?: number;
+  sesionesRestantes?: number | null;
 }
 
 export interface Paciente {
@@ -191,6 +193,8 @@ export interface Factura {
   pagos?: Pago[];
   montoAseguradora?: string | null;
   montoPaciente?: string;
+  pagado?: string;
+  saldo?: string;
 }
 
 export interface Pago {
@@ -200,6 +204,9 @@ export interface Pago {
   metodoPago: MetodoPago;
   fecha: string;
   referencia?: string | null;
+  anulado: boolean;
+  anuladoEn?: string | null;
+  motivoAnulacion?: string | null;
 }
 
 export interface ItemReceta {

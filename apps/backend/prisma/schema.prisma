@@ -116,6 +116,7 @@ model Usuario {
   bloqueosHorario      BloqueoHorario[]
   adjuntosSubidos      Adjunto[]        @relation("SubidoPorUsuario")
   pagosRegistrados     Pago[]           @relation("RegistradoPorUsuario")
+  pagosAnulados        Pago[]           @relation("AnuladoPorUsuario")
   logsAcceso           LogAcceso[]
   movimientosInsumo    MovimientoInsumo[]
   mantenimientosEquipo MantenimientoEquipo[]
@@ -178,6 +179,7 @@ model AutorizacionSeguro {
 
   paciente    Paciente    @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   aseguradora Aseguradora @relation(fields: [aseguradoraId], references: [id])
+  facturas    Factura[]
 
   @@index([pacienteId])
   @@map("autorizaciones_seguro")
@@ -399,10 +401,18 @@ model Factura {
   numeroFactura  String        @unique
   pacienteId     String
   aseguradoraId  String?
+  // Autorización previa que respalda la factura cuando la aseguradora la
+  // exige; sus sesiones consumidas se cuentan a partir de estas facturas.
+  autorizacionId String?
   fecha          DateTime      @default(now())
   subtotal       Decimal       @db.Decimal(10, 2)
   impuestos      Decimal       @default(0) @db.Decimal(10, 2)
   total          Decimal       @db.Decimal(10, 2)
+  // Reparto aseguradora/paciente congelado al emitir la factura: si luego
+  // cambian el % de cobertura o el tope del convenio, las facturas ya
+  // emitidas no se recalculan. montoAseguradora es null en facturas particulares.
+  montoAseguradora Decimal?    @db.Decimal(10, 2)
+  montoPaciente  Decimal       @db.Decimal(10, 2)
   estado         EstadoFactura @default(PENDIENTE)
   notas          String?
   createdAt      DateTime      @default(now())
@@ -410,11 +420,13 @@ model Factura {
 
   paciente    Paciente         @relation(fields: [pacienteId], references: [id])
   aseguradora Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  autorizacion AutorizacionSeguro? @relation(fields: [autorizacionId], references: [id])
   detalles    FacturaDetalle[]
   pagos       Pago[]
 
   @@index([pacienteId])
   @@index([estado])
+  @@index([autorizacionId])
   @@map("facturas")
 }
 
@@ -445,10 +457,17 @@ model Pago {
   fecha          DateTime   @default(now())
   referencia     String?
   registradoPorId String
+  // Un pago mal registrado o reembolsado no se borra: se anula y deja de
+  // contar para el saldo, los ingresos y el estado de la factura.
+  anulado         Boolean   @default(false)
+  anuladoEn       DateTime?
+  anuladoPorId    String?
+  motivoAnulacion String?
   createdAt      DateTime   @default(now())
 
-  factura       Factura @relation(fields: [facturaId], references: [id])
-  registradoPor Usuario @relation("RegistradoPorUsuario", fields: [registradoPorId], references: [id])
+  factura       Factura  @relation(fields: [facturaId], references: [id])
+  registradoPor Usuario  @relation("RegistradoPorUsuario", fields: [registradoPorId], references: [id])
+  anuladoPor    Usuario? @relation("AnuladoPorUsuario", fields: [anuladoPorId], references: [id])
 
   @@index([facturaId])
   @@map("pagos")
@@ -757,4 +776,15 @@ model FotoGaleria {
 
   @@index([visible, orden])
   @@map("fotos_galeria")
+}
+
+// Correlativos por serie y año (facturas, recetas, constancias). Se
+// incrementan con un único INSERT ... ON CONFLICT atómico (ver
+// src/lib/correlativos.ts) para que dos documentos emitidos a la vez nunca
+// reciban el mismo número.
+model Correlativo {
+  serie String @id // ej. "LM-2026", "RX-2026", "CM-2026"
+  valor Int
+
+  @@map("correlativos")
 }

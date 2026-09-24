@@ -15,7 +15,7 @@ vi.mock("child_process", () => ({
 }));
 vi.mock("fs/promises", () => ({ default: fsMock }));
 
-import { crearBackup, listarBackups, limpiarBackupsAntiguos, rutaBackupSeguro } from "./backups.service";
+import { conexionPgDump, crearBackup, listarBackups, limpiarBackupsAntiguos, rutaBackupSeguro } from "./backups.service";
 import { HttpError } from "../../lib/http-error";
 
 beforeEach(() => {
@@ -25,18 +25,20 @@ beforeEach(() => {
   process.env.BACKUP_RETENCION_DIAS = "30";
   fsMock.mkdir.mockResolvedValue(undefined);
   fsMock.readdir.mockResolvedValue([]);
+  fsMock.unlink.mockResolvedValue(undefined);
 });
 
 describe("backups.service.crearBackup", () => {
   it("ejecuta pg_dump y devuelve la info del archivo generado", async () => {
-    execFileMock.mockImplementation((_file, _args, cb) => cb(null, "", ""));
+    execFileMock.mockImplementation((...args: any[]) => args.at(-1)(null, "", ""));
     fsMock.stat.mockResolvedValue({ size: 1234, birthtime: new Date("2026-01-01") });
 
     const backup = await crearBackup();
 
     expect(execFileMock).toHaveBeenCalledWith(
       "pg_dump",
-      expect.arrayContaining(["--dbname", process.env.DATABASE_URL, "-Fc"]),
+      expect.arrayContaining(["--dbname", "postgresql://user@localhost:5432/db", "-Fc"]),
+      expect.objectContaining({ env: expect.objectContaining({ PGPASSWORD: "pass" }) }),
       expect.any(Function)
     );
     expect(backup.tamanioBytes).toBe(1234);
@@ -45,9 +47,21 @@ describe("backups.service.crearBackup", () => {
 
   it("lanza un error claro si pg_dump no está instalado", async () => {
     const enoent = Object.assign(new Error("not found"), { code: "ENOENT" });
-    execFileMock.mockImplementation((_file, _args, cb) => cb(enoent));
+    execFileMock.mockImplementation((...args: any[]) => args.at(-1)(enoent));
 
     await expect(crearBackup()).rejects.toThrow(/pg_dump no está instalado/);
+  });
+
+  it("si pg_dump falla borra el archivo a medias y no expone la contraseña", async () => {
+    process.env.DATABASE_URL = "postgresql://user:secreta@localhost:5432/db?schema=public";
+    const fallo = Object.assign(new Error("Command failed: pg_dump ..."), { stderr: "pg_dump: error: conexión rechazada\n" });
+    execFileMock.mockImplementation((...args: any[]) => args.at(-1)(fallo));
+    fsMock.unlink.mockResolvedValue(undefined);
+
+    const error = await crearBackup().catch((e) => e);
+    expect(error.message).toBe("No se pudo generar el backup: pg_dump: error: conexión rechazada");
+    expect(error.message).not.toContain("secreta");
+    expect(fsMock.unlink).toHaveBeenCalledWith(expect.stringMatching(/lilymedical-\d{8}T\d{6}\.dump$/));
   });
 
   it("exige DATABASE_URL configurado", async () => {
@@ -102,5 +116,15 @@ describe("backups.service.rutaBackupSeguro", () => {
   it("rechaza intentos de path traversal u otros nombres", () => {
     expect(() => rutaBackupSeguro("../../etc/passwd")).toThrow(HttpError);
     expect(() => rutaBackupSeguro("cualquier-cosa.dump")).toThrow(HttpError);
+  });
+});
+
+describe("backups.service.conexionPgDump", () => {
+  it("quita los parámetros de Prisma y saca la contraseña de la URL", () => {
+    const { dbname, env } = conexionPgDump(
+      "postgresql://lilymedical:p%40ss@127.0.0.1:5432/lilymedical?schema=public&sslmode=require"
+    );
+    expect(dbname).toBe("postgresql://lilymedical@127.0.0.1:5432/lilymedical?sslmode=require");
+    expect(env.PGPASSWORD).toBe("p@ss");
   });
 });

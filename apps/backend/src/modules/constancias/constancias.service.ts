@@ -1,14 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
+import { siguienteNumero } from "../../lib/correlativos";
 import { CrearConstanciaInput } from "./constancias.schema";
-
-async function generarNumeroConstancia(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await prisma.constanciaMedica.count({
-    where: { numeroConstancia: { startsWith: `CM-${year}-` } },
-  });
-  return `CM-${year}-${String(count + 1).padStart(5, "0")}`;
-}
 
 export async function crearConstancia(medicoId: string, data: CrearConstanciaInput) {
   const historia = await prisma.historiaClinica.findUnique({
@@ -16,7 +9,7 @@ export async function crearConstancia(medicoId: string, data: CrearConstanciaInp
   });
   if (!historia) throw new HttpError(404, "El paciente no tiene historia clínica");
 
-  const numeroConstancia = await generarNumeroConstancia();
+  const numeroConstancia = await siguienteNumero("CM");
 
   return prisma.constanciaMedica.create({
     data: {

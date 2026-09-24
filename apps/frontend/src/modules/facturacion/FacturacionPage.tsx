@@ -4,7 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Input";
 import { Badge } from "../../components/ui/Badge";
 import { Factura, EstadoFactura } from "../../types";
-import { listarFacturas } from "../../services/facturacion";
+import { abrirPdfFactura, anularFactura, listarFacturas } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
 import { FacturaFormModal } from "./FacturaFormModal";
 import { PagoModal } from "./PagoModal";
@@ -37,6 +37,23 @@ export function FacturacionPage() {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  async function accion(fn: () => Promise<unknown>) {
+    setError(null);
+    try {
+      await fn();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  function handleAnular(f: Factura) {
+    if (!window.confirm(`¿Anular la factura ${f.numeroFactura}? Si tiene pagos, primero hay que anularlos.`)) return;
+    accion(async () => {
+      await anularFactura(f.id);
+      await cargar();
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,10 +111,16 @@ export function FacturacionPage() {
                     <td className="px-4 py-3">
                       <Badge color={estadoColor[f.estado]}>{f.estado}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      {f.estado !== "PAGADA" && f.estado !== "ANULADA" && (
-                        <Button variant="ghost" onClick={() => setFacturaPago(f)}>
-                          Registrar pago
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <Button variant="ghost" onClick={() => setFacturaPago(f)}>
+                        {f.estado === "PENDIENTE" || f.estado === "PARCIAL" ? "Registrar pago" : "Pagos"}
+                      </Button>
+                      <Button variant="ghost" onClick={() => accion(() => abrirPdfFactura(f.id))}>
+                        PDF
+                      </Button>
+                      {f.estado !== "ANULADA" && (
+                        <Button variant="ghost" onClick={() => handleAnular(f)}>
+                          Anular
                         </Button>
                       )}
                     </td>
@@ -114,7 +137,7 @@ export function FacturacionPage() {
       <AseguradorasPanel />
 
       <FacturaFormModal open={modalOpen} onClose={() => setModalOpen(false)} onCreated={cargar} />
-      <PagoModal factura={facturaPago} onClose={() => setFacturaPago(null)} onRegistrado={cargar} />
+      <PagoModal key={facturaPago?.id ?? "ninguna"} factura={facturaPago} onClose={() => setFacturaPago(null)} onRegistrado={cargar} />
     </div>
   );
 }
