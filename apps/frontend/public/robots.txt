@@ -1,0 +1,21 @@
+# Solo la portada es pública. El resto es la aplicación del consultorio y el
+# portal del paciente (detrás de login) o datos que no deben indexarse.
+User-agent: *
+Allow: /$
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /verificar/
+Disallow: /login
+Disallow: /registro-paciente
+Disallow: /portal
+Disallow: /pacientes
+Disallow: /agenda
+Disallow: /perfil
+Disallow: /dashboard
+Disallow: /facturacion
+Disallow: /reportes
+Disallow: /inventario
+Disallow: /galeria
+Disallow: /personal
+
+Sitemap: https://lilymedical.com.ve/sitemap.xml

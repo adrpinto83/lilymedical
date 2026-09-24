@@ -1,0 +1,14 @@
+{
+  "name": "LilyMedical · Dra. Lilia Figuera",
+  "short_name": "LilyMedical",
+  "description": "Medicina física y rehabilitación en Puerto La Cruz.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5f7864",
+  "lang": "es",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.png", "sizes": "690x690", "type": "image/png" }
+  ]
+}
