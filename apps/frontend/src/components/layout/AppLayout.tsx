@@ -12,8 +12,8 @@ interface NavItem {
   roles: RolUsuario[];
 }
 
-const TODO_EL_PERSONAL: RolUsuario[] = ["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"];
-const GESTION: RolUsuario[] = ["MEDICO", "ADMINISTRATIVO"];
+const TODO_EL_PERSONAL: RolUsuario[] = ["ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"];
+const GESTION: RolUsuario[] = ["ADMIN", "MEDICO", "ADMINISTRATIVO"];
 
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: "📊", roles: GESTION },
@@ -23,7 +23,8 @@ const navItems: NavItem[] = [
   { to: "/reportes", label: "Reportes", icon: "📈", roles: GESTION },
   { to: "/inventario", label: "Inventario", icon: "🛠️", roles: GESTION },
   { to: "/galeria", label: "Galería web", icon: "🖼️", roles: GESTION },
-  { to: "/personal", label: "Personal", icon: "👥", roles: ["MEDICO"] },
+  { to: "/aviso-portada", label: "Aviso de portada", icon: "📣", roles: GESTION },
+  { to: "/personal", label: "Personal", icon: "👥", roles: ["ADMIN", "MEDICO"] },
   { to: "/perfil", label: "Mi cuenta", icon: "🩺", roles: TODO_EL_PERSONAL },
 ];
 

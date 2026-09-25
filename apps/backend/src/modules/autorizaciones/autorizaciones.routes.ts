@@ -9,7 +9,7 @@ import { includeConsumoAutorizacion, sesionesUsadas } from "../facturacion/factu
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 router.get("/paciente/:pacienteId", async (req, res) => {
   const autorizaciones = await prisma.autorizacionSeguro.findMany({

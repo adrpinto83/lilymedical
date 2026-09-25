@@ -15,9 +15,9 @@ const router = Router();
 
 // Agenda: sin datos clínicos. El fisiatra ayudante la consulta para saber a
 // quién atiende; agendar y cancelar sigue siendo de médico y administrativo.
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
 
-const soloGestion = roleGuard("MEDICO", "ADMINISTRATIVO");
+const soloGestion = roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO");
 
 
 router.get("/", async (req, res) => {

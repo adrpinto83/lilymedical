@@ -30,11 +30,12 @@ router.post(
   }
 );
 
-// Solo un médico (dueño del consultorio) puede dar de alta nuevos usuarios/staff
+// Solo el médico (dueño del consultorio) o el administrador del sistema dan
+// de alta nuevos usuarios/staff
 router.post(
   "/register",
   requireAuth,
-  roleGuard("MEDICO"),
+  roleGuard("ADMIN", "MEDICO"),
   validateBody(registerSchema),
   async (req, res) => {
     const usuario = await authService.register(req.body);

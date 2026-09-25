@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo, LogoMark } from "../../components/layout/Logo";
 import { Carrusel } from "./Carrusel";
-import { Dedicatoria } from "./Dedicatoria";
+import { AvisoPortada } from "./AvisoPortada";
 import { useGaleria } from "./useGaleria";
 import {
   beneficiosPortal,
@@ -104,7 +104,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Dedicatoria />
+      <AvisoPortada />
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-lily-blue-700 focus:px-4 focus:py-2 focus:text-sm focus:text-white"

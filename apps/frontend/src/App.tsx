@@ -13,6 +13,7 @@ import { FacturacionPage } from "./modules/facturacion/FacturacionPage";
 import { PerfilMedicoPage } from "./modules/perfil-medico/PerfilMedicoPage";
 import { InventarioPage } from "./modules/inventario/InventarioPage";
 import { GaleriaPage } from "./modules/galeria/GaleriaPage";
+import { AvisoPortadaPage } from "./modules/aviso-portada/AvisoPortadaPage";
 import { PersonalPage } from "./modules/personal/PersonalPage";
 import { VerificacionPage } from "./modules/verificacion/VerificacionPage";
 import { RegistroPacientePage } from "./modules/portal-paciente/RegistroPacientePage";
@@ -44,7 +45,7 @@ export default function App() {
 
             <Route
               element={
-                <ProtectedRoute allowedRoles={["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"]} />
+                <ProtectedRoute allowedRoles={["ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"]} />
               }
             >
               <Route element={<AppLayout />}>
@@ -55,15 +56,16 @@ export default function App() {
                 <Route path="/perfil" element={<PerfilMedicoPage />} />
 
                 {/* Gestión del consultorio: fuera del alcance del ayudante. */}
-                <Route element={<ProtectedRoute allowedRoles={["MEDICO", "ADMINISTRATIVO"]} />}>
+                <Route element={<ProtectedRoute allowedRoles={["ADMIN", "MEDICO", "ADMINISTRATIVO"]} />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/facturacion" element={<FacturacionPage />} />
                   <Route path="/reportes" element={<ReportesPage />} />
                   <Route path="/inventario" element={<InventarioPage />} />
                   <Route path="/galeria" element={<GaleriaPage />} />
+                  <Route path="/aviso-portada" element={<AvisoPortadaPage />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={["MEDICO"]} />}>
+                <Route element={<ProtectedRoute allowedRoles={["ADMIN", "MEDICO"]} />}>
                   <Route path="/personal" element={<PersonalPage />} />
                 </Route>
               </Route>

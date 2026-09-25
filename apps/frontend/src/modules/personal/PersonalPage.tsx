@@ -20,9 +20,11 @@ const ROLES: Array<{ valor: RolPersonal; descripcion: string }> = [
   { valor: "FISIATRA_AYUDANTE", descripcion: "Registra la evolución y el progreso de los pacientes" },
   { valor: "ADMINISTRATIVO", descripcion: "Agenda, facturación e inventario, sin acceso clínico" },
   { valor: "MEDICO", descripcion: "Acceso completo, incluidos récipes y constancias" },
+  { valor: "ADMIN", descripcion: "Administrador del sistema: personal y gestión, sin acceso clínico" },
 ];
 
-const COLOR_ROL: Record<RolPersonal, "blue" | "green" | "amber"> = {
+const COLOR_ROL: Record<RolPersonal, "blue" | "green" | "amber" | "red"> = {
+  ADMIN: "red",
   MEDICO: "blue",
   FISIATRA_AYUDANTE: "green",
   ADMINISTRATIVO: "amber",

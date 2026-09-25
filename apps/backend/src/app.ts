@@ -29,6 +29,7 @@ import portalPacienteRoutes from "./modules/portal-paciente/portal-paciente.rout
 import backupsRoutes from "./modules/backups/backups.routes";
 import equiposRoutes from "./modules/equipos/equipos.routes";
 import galeriaRoutes from "./modules/galeria/galeria.routes";
+import avisosPortadaRoutes from "./modules/avisos-portada/avisos-portada.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -85,6 +86,7 @@ export function createApp() {
   app.use("/api/backups", backupsRoutes);
   app.use("/api/equipos", equiposRoutes);
   app.use("/api/galeria", galeriaRoutes);
+  app.use("/api/avisos-portada", avisosPortadaRoutes);
 
   // En producción el mismo proceso puede servir el SPA compilado: así la app
   // viaja por un solo origen (sin CORS) y no hace falta un servidor web

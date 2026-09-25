@@ -13,6 +13,9 @@ datasource db {
 // ============================================================
 
 enum RolUsuario {
+  // Administrador del sistema: gestiona personal, respaldos y toda la parte
+  // administrativa, pero no ve historias clínicas ni emite actos médicos.
+  ADMIN
   MEDICO
   ADMINISTRATIVO
   // Fisiatra ayudante: registra la evolución y el progreso de los pacientes,
@@ -94,38 +97,38 @@ enum TipoReceta {
 // ============================================================
 
 model Usuario {
-  id           String     @id @default(uuid())
-  nombre       String
-  apellido     String
-  email        String     @unique
-  passwordHash String
-  rol          RolUsuario
-  especialidad String? // ej. "Fisiatría", "Terapia Ocupacional" (para MEDICO)
-  pacienteId   String?    @unique // vincula un login con rol PACIENTE a su ficha clínica (portal del paciente)
-  activo       Boolean    @default(true)
-  intentosFallidos Int      @default(0) // login: intentos de contraseña incorrectos consecutivos (Fase 13)
+  id               String     @id @default(uuid())
+  nombre           String
+  apellido         String
+  email            String     @unique
+  passwordHash     String
+  rol              RolUsuario
+  especialidad     String? // ej. "Fisiatría", "Terapia Ocupacional" (para MEDICO)
+  pacienteId       String?    @unique // vincula un login con rol PACIENTE a su ficha clínica (portal del paciente)
+  activo           Boolean    @default(true)
+  intentosFallidos Int        @default(0) // login: intentos de contraseña incorrectos consecutivos (Fase 13)
   bloqueadoHasta   DateTime? // login: bloqueado temporalmente tras superar LOGIN_MAX_INTENTOS (Fase 13)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   paciente Paciente? @relation(fields: [pacienteId], references: [id])
 
-  citasComoProfesional Cita[]           @relation("ProfesionalCitas")
-  sesionesComoTerapeuta Sesion[]        @relation("TerapeutaSesiones")
-  evaluacionesRealizadas EvaluacionFisiatrica[] @relation("EvaluadorEvaluaciones")
-  bloqueosHorario      BloqueoHorario[]
-  adjuntosSubidos      Adjunto[]        @relation("SubidoPorUsuario")
-  pagosRegistrados     Pago[]           @relation("RegistradoPorUsuario")
-  pagosAnulados        Pago[]           @relation("AnuladoPorUsuario")
-  logsAcceso           LogAcceso[]
-  movimientosInsumo    MovimientoInsumo[]
-  mantenimientosEquipo MantenimientoEquipo[]
-  perfilMedico         PerfilMedico?
-  recetasEmitidas      Receta[]         @relation("MedicoRecetas")
-  constanciasEmitidas  ConstanciaMedica[] @relation("MedicoConstancias")
-  plantillasReceta     PlantillaReceta[]
-  planesEjerciciosEmitidos PlanEjercicios[] @relation("MedicoPlanesEjercicios")
-  fotosGaleriaSubidas      FotoGaleria[]    @relation("UsuarioFotosGaleria")
+  citasComoProfesional     Cita[]                 @relation("ProfesionalCitas")
+  sesionesComoTerapeuta    Sesion[]               @relation("TerapeutaSesiones")
+  evaluacionesRealizadas   EvaluacionFisiatrica[] @relation("EvaluadorEvaluaciones")
+  bloqueosHorario          BloqueoHorario[]
+  adjuntosSubidos          Adjunto[]              @relation("SubidoPorUsuario")
+  pagosRegistrados         Pago[]                 @relation("RegistradoPorUsuario")
+  pagosAnulados            Pago[]                 @relation("AnuladoPorUsuario")
+  logsAcceso               LogAcceso[]
+  movimientosInsumo        MovimientoInsumo[]
+  mantenimientosEquipo     MantenimientoEquipo[]
+  perfilMedico             PerfilMedico?
+  recetasEmitidas          Receta[]               @relation("MedicoRecetas")
+  constanciasEmitidas      ConstanciaMedica[]     @relation("MedicoConstancias")
+  plantillasReceta         PlantillaReceta[]
+  planesEjerciciosEmitidos PlanEjercicios[]       @relation("MedicoPlanesEjercicios")
+  fotosGaleriaSubidas      FotoGaleria[]          @relation("UsuarioFotosGaleria")
 
   @@map("usuarios")
 }
@@ -149,9 +152,9 @@ model Aseguradora {
   activo               Boolean  @default(true)
   createdAt            DateTime @default(now())
 
-  pacientes     PacienteAseguradora[]
-  tarifas       Tarifa[]
-  facturas      Factura[]
+  pacientes      PacienteAseguradora[]
+  tarifas        Tarifa[]
+  facturas       Factura[]
   autorizaciones AutorizacionSeguro[]
 
   @@map("aseguradoras")
@@ -190,31 +193,31 @@ model AutorizacionSeguro {
 // ============================================================
 
 model Paciente {
-  id                       String        @id @default(uuid())
-  nombres                  String
-  apellidos                String
-  documento                String        @unique
-  fechaNacimiento          DateTime
-  sexo                     SexoPaciente
-  telefono                 String
-  email                    String?
-  direccion                String?
-  contactoEmergenciaNombre String?
+  id                         String       @id @default(uuid())
+  nombres                    String
+  apellidos                  String
+  documento                  String       @unique
+  fechaNacimiento            DateTime
+  sexo                       SexoPaciente
+  telefono                   String
+  email                      String?
+  direccion                  String?
+  contactoEmergenciaNombre   String?
   contactoEmergenciaTelefono String?
-  activo                   Boolean       @default(true)
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+  activo                     Boolean      @default(true)
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
 
-  aseguradoras    PacienteAseguradora[]
+  aseguradoras         PacienteAseguradora[]
   autorizacionesSeguro AutorizacionSeguro[]
-  historiaClinica HistoriaClinica?
-  citas           Cita[]
-  facturas        Factura[]
-  logsAcceso      LogAcceso[]
-  recetas         Receta[]
-  constancias     ConstanciaMedica[]
-  planesEjercicios PlanEjercicios[]
-  usuarioPortal   Usuario?
+  historiaClinica      HistoriaClinica?
+  citas                Cita[]
+  facturas             Factura[]
+  logsAcceso           LogAcceso[]
+  recetas              Receta[]
+  constancias          ConstanciaMedica[]
+  planesEjercicios     PlanEjercicios[]
+  usuarioPortal        Usuario?
 
   @@index([documento])
   @@index([telefono])
@@ -246,25 +249,25 @@ model PacienteAseguradora {
 // ============================================================
 
 model HistoriaClinica {
-  id                     String   @id @default(uuid())
-  pacienteId             String   @unique
-  motivoConsulta         String?
-  diagnosticoPrincipal   String?
-  codigoCIE10            String?
-  antecedentesMedicos    String?
+  id                      String   @id @default(uuid())
+  pacienteId              String   @unique
+  motivoConsulta          String?
+  diagnosticoPrincipal    String?
+  codigoCIE10             String?
+  antecedentesMedicos     String?
   antecedentesQuirurgicos String?
-  antecedentesFamiliares String?
-  alergias               String? // medicamentosas, alimentarias, etc. — se muestra como alerta en recetas
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  antecedentesFamiliares  String?
+  alergias                String? // medicamentosas, alimentarias, etc. — se muestra como alerta en recetas
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  paciente      Paciente                @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  evaluaciones  EvaluacionFisiatrica[]
-  sesiones      Sesion[]
-  adjuntos      Adjunto[]
-  logsAcceso    LogAcceso[]
-  recetas       Receta[]
-  constancias   ConstanciaMedica[]
+  paciente         Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  evaluaciones     EvaluacionFisiatrica[]
+  sesiones         Sesion[]
+  adjuntos         Adjunto[]
+  logsAcceso       LogAcceso[]
+  recetas          Receta[]
+  constancias      ConstanciaMedica[]
   planesEjercicios PlanEjercicios[]
 
   @@map("historias_clinicas")
@@ -293,19 +296,19 @@ model EvaluacionFisiatrica {
 
 // Notas de evolución / línea de tiempo del paciente
 model Sesion {
-  id                String           @id @default(uuid())
-  historiaClinicaId String
-  citaId            String?          @unique
-  terapeutaId       String
-  fecha             DateTime         @default(now())
-  notaEvolucion     String
+  id                  String           @id @default(uuid())
+  historiaClinicaId   String
+  citaId              String?          @unique
+  terapeutaId         String
+  fecha               DateTime         @default(now())
+  notaEvolucion       String
   tratamientoAplicado String?
-  asistencia        EstadoAsistencia @default(ASISTIO)
-  createdAt         DateTime         @default(now())
+  asistencia          EstadoAsistencia @default(ASISTIO)
+  createdAt           DateTime         @default(now())
 
-  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
-  terapeuta       Usuario         @relation("TerapeutaSesiones", fields: [terapeutaId], references: [id])
-  cita            Cita?           @relation(fields: [citaId], references: [id])
+  historiaClinica HistoriaClinica  @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
+  terapeuta       Usuario          @relation("TerapeutaSesiones", fields: [terapeutaId], references: [id])
+  cita            Cita?            @relation(fields: [citaId], references: [id])
   facturaDetalles FacturaDetalle[]
 
   @@index([historiaClinicaId])
@@ -338,22 +341,22 @@ model Cita {
   pacienteId          String
   profesionalId       String
   tarifaId            String?
-  fechaHoraInicio      DateTime
-  fechaHoraFin         DateTime
+  fechaHoraInicio     DateTime
+  fechaHoraFin        DateTime
   estado              EstadoCita @default(PROGRAMADA)
-  esRecurrente         Boolean    @default(false)
-  grupoRecurrenciaId   String? // agrupa un paquete de sesiones (ej. 10 sesiones)
-  numeroSesionEnGrupo  Int?
-  totalSesionesGrupo   Int?
-  notas                String?
-  recordatorioEnviado  Boolean    @default(false)
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
+  esRecurrente        Boolean    @default(false)
+  grupoRecurrenciaId  String? // agrupa un paquete de sesiones (ej. 10 sesiones)
+  numeroSesionEnGrupo Int?
+  totalSesionesGrupo  Int?
+  notas               String?
+  recordatorioEnviado Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
-  paciente    Paciente @relation(fields: [pacienteId], references: [id])
-  profesional Usuario  @relation("ProfesionalCitas", fields: [profesionalId], references: [id])
-  tarifa      Tarifa?  @relation(fields: [tarifaId], references: [id])
-  sesion      Sesion?
+  paciente        Paciente         @relation(fields: [pacienteId], references: [id])
+  profesional     Usuario          @relation("ProfesionalCitas", fields: [profesionalId], references: [id])
+  tarifa          Tarifa?          @relation(fields: [tarifaId], references: [id])
+  sesion          Sesion?
   facturaDetalles FacturaDetalle[]
 
   @@index([profesionalId, fechaHoraInicio])
@@ -363,12 +366,12 @@ model Cita {
 }
 
 model BloqueoHorario {
-  id                String   @id @default(uuid())
-  profesionalId     String
-  fechaHoraInicio   DateTime
-  fechaHoraFin      DateTime
-  motivo            String?
-  createdAt         DateTime @default(now())
+  id              String   @id @default(uuid())
+  profesionalId   String
+  fechaHoraInicio DateTime
+  fechaHoraFin    DateTime
+  motivo          String?
+  createdAt       DateTime @default(now())
 
   profesional Usuario @relation(fields: [profesionalId], references: [id])
 
@@ -381,13 +384,13 @@ model BloqueoHorario {
 // ============================================================
 
 model Tarifa {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   nombreServicio String // Consulta, Terapia Física, Terapia Ocupacional...
   descripcion    String?
-  precio         Decimal      @db.Decimal(10, 2)
+  precio         Decimal  @db.Decimal(10, 2)
   aseguradoraId  String? // si es una tarifa especial de convenio
-  activo         Boolean      @default(true)
-  createdAt      DateTime     @default(now())
+  activo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
 
   aseguradora     Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
   citas           Cita[]
@@ -397,32 +400,32 @@ model Tarifa {
 }
 
 model Factura {
-  id             String        @id @default(uuid())
-  numeroFactura  String        @unique
-  pacienteId     String
-  aseguradoraId  String?
+  id               String        @id @default(uuid())
+  numeroFactura    String        @unique
+  pacienteId       String
+  aseguradoraId    String?
   // Autorización previa que respalda la factura cuando la aseguradora la
   // exige; sus sesiones consumidas se cuentan a partir de estas facturas.
-  autorizacionId String?
-  fecha          DateTime      @default(now())
-  subtotal       Decimal       @db.Decimal(10, 2)
-  impuestos      Decimal       @default(0) @db.Decimal(10, 2)
-  total          Decimal       @db.Decimal(10, 2)
+  autorizacionId   String?
+  fecha            DateTime      @default(now())
+  subtotal         Decimal       @db.Decimal(10, 2)
+  impuestos        Decimal       @default(0) @db.Decimal(10, 2)
+  total            Decimal       @db.Decimal(10, 2)
   // Reparto aseguradora/paciente congelado al emitir la factura: si luego
   // cambian el % de cobertura o el tope del convenio, las facturas ya
   // emitidas no se recalculan. montoAseguradora es null en facturas particulares.
-  montoAseguradora Decimal?    @db.Decimal(10, 2)
-  montoPaciente  Decimal       @db.Decimal(10, 2)
-  estado         EstadoFactura @default(PENDIENTE)
-  notas          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  montoAseguradora Decimal?      @db.Decimal(10, 2)
+  montoPaciente    Decimal       @db.Decimal(10, 2)
+  estado           EstadoFactura @default(PENDIENTE)
+  notas            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  paciente    Paciente         @relation(fields: [pacienteId], references: [id])
-  aseguradora Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
+  paciente     Paciente            @relation(fields: [pacienteId], references: [id])
+  aseguradora  Aseguradora?        @relation(fields: [aseguradoraId], references: [id])
   autorizacion AutorizacionSeguro? @relation(fields: [autorizacionId], references: [id])
-  detalles    FacturaDetalle[]
-  pagos       Pago[]
+  detalles     FacturaDetalle[]
+  pagos        Pago[]
 
   @@index([pacienteId])
   @@index([estado])
@@ -431,15 +434,15 @@ model Factura {
 }
 
 model FacturaDetalle {
-  id             String   @id @default(uuid())
+  id             String  @id @default(uuid())
   facturaId      String
   tarifaId       String
   citaId         String?
   sesionId       String?
   descripcion    String?
-  cantidad       Int      @default(1)
-  precioUnitario Decimal  @db.Decimal(10, 2)
-  subtotal       Decimal  @db.Decimal(10, 2)
+  cantidad       Int     @default(1)
+  precioUnitario Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
 
   factura Factura @relation(fields: [facturaId], references: [id], onDelete: Cascade)
   tarifa  Tarifa  @relation(fields: [tarifaId], references: [id])
@@ -450,20 +453,20 @@ model FacturaDetalle {
 }
 
 model Pago {
-  id             String     @id @default(uuid())
-  facturaId      String
-  monto          Decimal    @db.Decimal(10, 2)
-  metodoPago     MetodoPago
-  fecha          DateTime   @default(now())
-  referencia     String?
+  id              String     @id @default(uuid())
+  facturaId       String
+  monto           Decimal    @db.Decimal(10, 2)
+  metodoPago      MetodoPago
+  fecha           DateTime   @default(now())
+  referencia      String?
   registradoPorId String
   // Un pago mal registrado o reembolsado no se borra: se anula y deja de
   // contar para el saldo, los ingresos y el estado de la factura.
-  anulado         Boolean   @default(false)
+  anulado         Boolean    @default(false)
   anuladoEn       DateTime?
   anuladoPorId    String?
   motivoAnulacion String?
-  createdAt      DateTime   @default(now())
+  createdAt       DateTime   @default(now())
 
   factura       Factura  @relation(fields: [facturaId], references: [id])
   registradoPor Usuario  @relation("RegistradoPorUsuario", fields: [registradoPorId], references: [id])
@@ -478,14 +481,14 @@ model Pago {
 // ============================================================
 
 model Insumo {
-  id            String   @id @default(uuid())
-  nombre        String
-  categoria     String?
-  stockActual   Int      @default(0)
-  stockMinimo   Int      @default(0)
-  unidadMedida  String? // unidades, cajas, rollos...
-  activo        Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id           String   @id @default(uuid())
+  nombre       String
+  categoria    String?
+  stockActual  Int      @default(0)
+  stockMinimo  Int      @default(0)
+  unidadMedida String? // unidades, cajas, rollos...
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   movimientos MovimientoInsumo[]
 
@@ -493,13 +496,13 @@ model Insumo {
 }
 
 model MovimientoInsumo {
-  id          String                @id @default(uuid())
-  insumoId    String
-  tipo        TipoMovimientoInsumo
-  cantidad    Int
-  motivo      String?
+  id              String               @id @default(uuid())
+  insumoId        String
+  tipo            TipoMovimientoInsumo
+  cantidad        Int
+  motivo          String?
   registradoPorId String
-  fecha       DateTime              @default(now())
+  fecha           DateTime             @default(now())
 
   insumo        Insumo  @relation(fields: [insumoId], references: [id])
   registradoPor Usuario @relation(fields: [registradoPorId], references: [id])
@@ -599,19 +602,19 @@ model LogAcceso {
 
 // Configuración de membrete/firma de cada médico, usada al generar PDFs
 model PerfilMedico {
-  id                    String   @id @default(uuid())
-  usuarioId             String   @unique
-  colegiatura           String? // N° MPPS
-  cma                   String? // N° de Colegio de Médicos del estado
-  rif                   String?
-  instagram             String? // ej. "@dra.fisya"
-  tituloProfesional     String? // ej. "Médico Fisiatra"
-  nombreConsultorio     String   @default("LilyMedical")
-  direccionConsultorio  String?
-  telefonoConsultorio   String?
-  firmaUrl              String? // ruta del archivo de imagen de firma
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  usuarioId            String   @unique
+  colegiatura          String? // N° MPPS
+  cma                  String? // N° de Colegio de Médicos del estado
+  rif                  String?
+  instagram            String? // ej. "@dra.fisya"
+  tituloProfesional    String? // ej. "Médico Fisiatra"
+  nombreConsultorio    String   @default("LilyMedical")
+  direccionConsultorio String?
+  telefonoConsultorio  String?
+  firmaUrl             String? // ruta del archivo de imagen de firma
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
@@ -787,4 +790,31 @@ model Correlativo {
   valor Int
 
   @@map("correlativos")
+}
+
+enum TipoAvisoPortada {
+  DEDICATORIA
+  COMERCIAL
+}
+
+// Ventana emergente que se muestra al entrar a la portada. Como mucho uno
+// está activo a la vez (se garantiza en el servicio y con un índice único
+// parcial en la migración). La dedicatoria original de cumpleaños se
+// conserva como registro histórico: se puede activar o desactivar, pero no
+// editar ni borrar.
+model AvisoPortada {
+  id          String           @id @default(uuid())
+  tipo        TipoAvisoPortada @default(COMERCIAL)
+  etiqueta    String? // texto pequeño sobre el título ("Promoción", "Dedicatoria")
+  titulo      String
+  mensaje     String // párrafos separados por una línea en blanco
+  firma       String?
+  textoBoton  String           @default("Entrar al sitio")
+  enlaceUrl   String? // opcional: botón de acción (WhatsApp, #servicios...)
+  enlaceTexto String?
+  activo      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("avisos_portada")
 }

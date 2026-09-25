@@ -5,6 +5,9 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 vi.mock("../../services/galeria", () => ({
   listarGaleriaPublica: () => Promise.resolve([]),
 }));
+vi.mock("../../services/avisosPortada", () => ({
+  obtenerAvisoActivo: () => Promise.resolve(null),
+}));
 import { render, screen, within, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { LandingPage } from "./LandingPage";

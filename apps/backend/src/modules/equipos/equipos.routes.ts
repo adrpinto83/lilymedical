@@ -7,7 +7,7 @@ import * as equiposService from "./equipos.service";
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 router.get("/", async (req, res) => {
   res.json(await equiposService.listarEquipos(req.query.incluirBajas === "true"));

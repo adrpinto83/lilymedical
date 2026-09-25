@@ -6,6 +6,7 @@ import { RolUsuario } from "../types";
 // sesión. Cada uno va a la primera pantalla que sí puede ver: si un rol
 // rebotara a una ruta que también tiene vedada, se produciría un bucle.
 export const HOME_POR_ROL: Record<RolUsuario, string> = {
+  ADMIN: "/dashboard",
   MEDICO: "/dashboard",
   ADMINISTRATIVO: "/dashboard",
   FISIATRA_AYUDANTE: "/pacientes",

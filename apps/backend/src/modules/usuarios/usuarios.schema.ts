@@ -8,7 +8,7 @@ export const crearUsuarioSchema = z.object({
   apellido: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-  rol: z.enum(["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"]),
+  rol: z.enum(["ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"]),
   especialidad: z.string().optional(),
 });
 

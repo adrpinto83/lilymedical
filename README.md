@@ -7,7 +7,7 @@ Sistema de gestión para consultorios de fisiatría (medicina física y rehabili
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS v4 + React Router
 - **Backend:** Node.js + Express + TypeScript
 - **Base de datos:** PostgreSQL + Prisma ORM
-- **Auth:** JWT con roles (`MEDICO`, `ADMINISTRATIVO`, `PACIENTE`)
+- **Auth:** JWT con roles (`ADMIN`, `MEDICO`, `ADMINISTRATIVO`, `FISIATRA_AYUDANTE`, `PACIENTE`)
 
 ## Estructura
 
@@ -116,6 +116,10 @@ lilymedical/
   - **Factura en PDF** (`GET /api/facturacion/facturas/:id/pdf`) con membrete del consultorio, detalle, reparto aseguradora/paciente y pagos; se aclara que es un comprobante interno y no sustituye la factura fiscal.
   - **Sesiones ↔ citas:** la asistencia de la nota de evolución define el estado de la cita (asistió → ATENDIDA, inasistió → NO_ASISTIO, canceló → CANCELADA), también al corregirla; borrar la nota devuelve la cita a PROGRAMADA; no se puede vincular la cita de otro paciente.
 
+- [x] **Aviso de portada** (menú **Aviso de portada**, roles `ADMIN`, `MEDICO` y `ADMINISTRATIVO`): la ventana emergente de la página de inicio se gestiona desde la app (`/api/avisos-portada`). Se pueden crear avisos comerciales (etiqueta, título, mensaje, firma, botón de cierre y botón de acción opcional con enlace `https://`, `#ancla` o `/ruta`), activar uno (reemplaza al anterior), desactivarlos todos y ver una vista previa. La dedicatoria de cumpleaños queda guardada como histórico: se activa o desactiva, pero no se edita ni se borra. Cada aviso se muestra una vez por sesión del navegador, y vuelve a aparecer si se cambia.
+
+- [x] **Rol `ADMIN`** (administrador del sistema, aparte de la cuenta de la Dra. Lilia): todo lo de gestión (dashboard, facturación, reportes, inventario, galería, aviso de portada, pacientes y agenda) más lo que antes era exclusivo del médico en lo administrativo: **Personal** (altas, roles, contraseñas) y respaldos. No ve historias clínicas, sesiones ni adjuntos, ni emite récipes o constancias, ni aparece como profesional en la agenda. La cuenta se crea con `node dist/scripts/crear-admin.js [email] [nombre] [apellido]` (por defecto `admin@lilymedical.com.ve`), que imprime una contraseña temporal aleatoria una sola vez.
+
 ## Tests
 
 ```bash
@@ -135,5 +139,5 @@ npm test --workspace=apps/frontend
 - Las contraseñas se almacenan con `bcrypt`.
 - Los campos clínicos sensibles (motivo de consulta, diagnóstico, antecedentes, notas de evolución) se cifran en reposo con AES-256-GCM antes de guardarse en la base de datos.
 - Cada lectura/escritura de una historia clínica queda registrada en `LogAcceso` (usuario, acción, fecha, IP).
-- El personal `ADMINISTRATIVO` no tiene acceso a los endpoints de `/historias-clinicas`, `/sesiones` ni `/adjuntos` — el middleware `roleGuard` lo bloquea en el backend, no solo se oculta en el frontend.
+- El personal `ADMINISTRATIVO` y el `ADMIN` no tienen acceso a los endpoints de `/historias-clinicas`, `/sesiones` ni `/adjuntos` — el middleware `roleGuard` lo bloquea en el backend, no solo se oculta en el frontend.
 # lilymedical

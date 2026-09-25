@@ -5,7 +5,7 @@ import { enviarRecordatoriosPendientes } from "./recordatorios.service";
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 // Envío manual/inmediato, además del cron automático (ver recordatorios.job.ts).
 // Útil para probar la configuración de SMTP o adelantar el envío del día.

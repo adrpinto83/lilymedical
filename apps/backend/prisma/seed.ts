@@ -39,7 +39,7 @@ async function main() {
     instagram: "@dra.fisya",
     tituloProfesional: "Médico Fisiatra",
     direccionConsultorio: "Av. Stadium, C.C. Novocentro, Pb local 08, Puerto la Cruz.",
-    telefonoConsultorio: "0414-7964640",
+    telefonoConsultorio: "0424-6773472",
   };
   await prisma.perfilMedico.upsert({
     where: { usuarioId: medico.id },

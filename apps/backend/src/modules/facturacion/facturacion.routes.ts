@@ -18,7 +18,7 @@ import { generarFacturaPdf } from "./facturacion.pdf";
 const router = Router();
 
 // Facturación: MEDICO y ADMINISTRATIVO (no expone datos clínicos)
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 // Tarifas
 router.get("/tarifas", async (_req, res) => {

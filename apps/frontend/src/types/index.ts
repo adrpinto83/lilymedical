@@ -1,6 +1,7 @@
-export type RolUsuario = "MEDICO" | "ADMINISTRATIVO" | "FISIATRA_AYUDANTE" | "PACIENTE";
+export type RolUsuario = "ADMIN" | "MEDICO" | "ADMINISTRATIVO" | "FISIATRA_AYUDANTE" | "PACIENTE";
 
 export const ETIQUETA_ROL: Record<RolUsuario, string> = {
+  ADMIN: "Administrador",
   MEDICO: "Médico",
   ADMINISTRATIVO: "Administrativo",
   FISIATRA_AYUDANTE: "Fisiatra ayudante",

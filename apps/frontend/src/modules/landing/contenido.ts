@@ -38,10 +38,10 @@ export const instagram = {
 
 export const contacto = {
   direccion: "Av. Stadium, C.C. Novocentro, PB local 08, Puerto La Cruz",
-  telefono: "0414-7964640",
+  telefono: "0424-6773472",
   /** Mismo número en formato internacional, para los enlaces tel: y wa.me */
-  telefonoInternacional: "+584147964640",
-  whatsapp: "584147964640",
+  telefonoInternacional: "+584246773472",
+  whatsapp: "584246773472",
   instagramUsuario: "@dra.fisya",
   instagramUrl: "https://www.instagram.com/dra.fisya/",
   mapaUrl:

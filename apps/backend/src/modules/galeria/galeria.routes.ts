@@ -41,7 +41,7 @@ router.get("/", async (_req, res) => {
 
 // El resto es gestión del contenido del sitio, no dato clínico: lo maneja
 // tanto la médico como el personal administrativo.
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 router.get("/gestion", async (_req, res) => {
   res.json(await galeriaService.listarTodas());

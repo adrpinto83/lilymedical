@@ -7,7 +7,7 @@ import * as backupsService from "./backups.service";
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO"));
 
 router.get("/", async (_req, res) => {
   const backups = await backupsService.listarBackups();

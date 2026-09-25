@@ -9,7 +9,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get("/dashboard", roleGuard("MEDICO", "ADMINISTRATIVO"), async (_req, res) => {
+router.get("/dashboard", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (_req, res) => {
   res.json(await reportesService.obtenerDashboard());
 });
 
@@ -19,12 +19,12 @@ function parseRango(req: any) {
   return { desde: new Date(String(desde)), hasta: new Date(String(hasta)) };
 }
 
-router.get("/ingresos", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/ingresos", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   res.json(await reportesService.reporteIngresosPorPeriodo(desde, hasta));
 });
 
-router.get("/ingresos.csv", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/ingresos.csv", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   const { pagos } = await reportesService.reporteIngresosPorPeriodo(desde, hasta);
   const csv = toCsv(
@@ -41,23 +41,23 @@ router.get("/ingresos.csv", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, r
   res.send(csv);
 });
 
-router.get("/pacientes-nuevos", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/pacientes-nuevos", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   res.json(await reportesService.reportePacientesPorPeriodo(desde, hasta));
 });
 
-router.get("/servicios-mas-solicitados", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/servicios-mas-solicitados", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   res.json(await reportesService.reporteServiciosMasSolicitados(desde, hasta));
 });
 
-router.get("/cobros-aseguradora", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/cobros-aseguradora", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   const aseguradoraId = typeof req.query.aseguradoraId === "string" ? req.query.aseguradoraId : undefined;
   res.json(await reportesService.reporteCobrosAseguradora(desde, hasta, aseguradoraId));
 });
 
-router.get("/cobros-aseguradora.csv", roleGuard("MEDICO", "ADMINISTRATIVO"), async (req, res) => {
+router.get("/cobros-aseguradora.csv", roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"), async (req, res) => {
   const { desde, hasta } = parseRango(req);
   const aseguradoraId = typeof req.query.aseguradoraId === "string" ? req.query.aseguradoraId : undefined;
   const facturas = await reportesService.reporteCobrosAseguradora(desde, hasta, aseguradoraId);

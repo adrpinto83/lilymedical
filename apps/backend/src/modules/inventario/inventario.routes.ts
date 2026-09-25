@@ -25,7 +25,7 @@ const movimientoSchema = z.object({
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 router.get("/", async (_req, res) => {
   res.json(await prisma.insumo.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }));

@@ -8,7 +8,7 @@ import { aseguradoraSchema } from "./aseguradoras.schema";
 
 const router = Router();
 
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 router.get("/", async (_req, res) => {
   const aseguradoras = await prisma.aseguradora.findMany({

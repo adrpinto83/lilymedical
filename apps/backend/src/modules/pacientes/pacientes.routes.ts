@@ -15,9 +15,9 @@ const router = Router();
 // El detalle clínico vive en /historias-clinicas, protegido aparte.
 // El fisiatra ayudante consulta las fichas para dar seguimiento, pero no
 // crea ni edita pacientes ni toca la parte de aseguradoras.
-router.use(requireAuth, roleGuard("MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
+router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
 
-const soloGestion = roleGuard("MEDICO", "ADMINISTRATIVO");
+const soloGestion = roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO");
 
 
 router.get("/", async (req, res) => {

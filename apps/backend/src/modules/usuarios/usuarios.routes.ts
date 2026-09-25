@@ -31,7 +31,7 @@ router.use(requireAuth);
 // personal para asignar citas y sesiones en la agenda.
 router.get(
   "/profesionales",
-  roleGuard("MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"),
+  roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"),
   async (_req, res) => {
     const profesionales = await prisma.usuario.findMany({
       where: { rol: { in: ["MEDICO", "FISIATRA_AYUDANTE"] }, activo: true },
@@ -42,8 +42,9 @@ router.get(
   }
 );
 
-// La gestión del personal la lleva solo el médico dueño del consultorio.
-router.use(roleGuard("MEDICO"));
+// La gestión del personal la llevan el médico dueño del consultorio y el
+// administrador del sistema.
+router.use(roleGuard("ADMIN", "MEDICO"));
 
 router.get("/", async (_req, res) => {
   const usuarios = await prisma.usuario.findMany({

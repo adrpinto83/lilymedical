@@ -10,7 +10,7 @@ export const registerSchema = z.object({
   apellido: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  rol: z.enum(["MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE", "PACIENTE"]),
+  rol: z.enum(["ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE", "PACIENTE"]),
   especialidad: z.string().optional(),
 });
 
