@@ -6,6 +6,7 @@ import { validateBody } from "../../middleware/validate";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import * as authService from "../auth/auth.service";
+import { eliminarUsuario } from "./usuarios.service";
 import {
   actualizarUsuarioSchema,
   crearUsuarioSchema,
@@ -42,13 +43,22 @@ router.get(
   }
 );
 
+/** Los usuarios dados de baja ya no se editan ni se reactivan. */
+async function buscarVigente(id: string) {
+  const usuario = await prisma.usuario.findUnique({ where: { id } });
+  if (!usuario || usuario.eliminadoEn) {
+    throw new HttpError(404, "Usuario no encontrado");
+  }
+  return usuario;
+}
+
 // La gestión del personal la llevan el médico dueño del consultorio y el
 // administrador del sistema.
 router.use(roleGuard("ADMIN", "MEDICO"));
 
 router.get("/", async (_req, res) => {
   const usuarios = await prisma.usuario.findMany({
-    where: { rol: { not: "PACIENTE" } },
+    where: { rol: { not: "PACIENTE" }, eliminadoEn: null },
     select: CAMPOS_PUBLICOS,
     orderBy: [{ activo: "desc" }, { nombre: "asc" }],
   });
@@ -65,6 +75,7 @@ router.put("/:id", validateBody(actualizarUsuarioSchema), async (req, res) => {
   if (req.params.id === req.user!.sub && req.body.activo === false) {
     throw new HttpError(400, "No puedes desactivar tu propia cuenta");
   }
+  await buscarVigente(req.params.id);
   const usuario = await prisma.usuario.update({
     where: { id: req.params.id },
     data: req.body,
@@ -76,8 +87,7 @@ router.put("/:id", validateBody(actualizarUsuarioSchema), async (req, res) => {
 // Reinicio de contraseña de otra persona (la olvidó). Para la propia se usa
 // PUT /api/auth/password, que sí exige la contraseña actual.
 router.post("/:id/password", validateBody(reiniciarPasswordSchema), async (req, res) => {
-  const usuario = await prisma.usuario.findUnique({ where: { id: req.params.id } });
-  if (!usuario) throw new HttpError(404, "Usuario no encontrado");
+  await buscarVigente(req.params.id);
 
   await prisma.usuario.update({
     where: { id: req.params.id },
@@ -88,6 +98,13 @@ router.post("/:id/password", validateBody(reiniciarPasswordSchema), async (req, 
     },
   });
   res.status(204).send();
+});
+
+// El administrador del sistema no se elimina; al resto se le borra o, si
+// tiene historial, se le da de baja lógica (ver usuarios.service).
+router.delete("/:id", async (req, res) => {
+  const resultado = await eliminarUsuario(req.params.id, req.user!.sub);
+  res.json({ resultado });
 });
 
 export default router;

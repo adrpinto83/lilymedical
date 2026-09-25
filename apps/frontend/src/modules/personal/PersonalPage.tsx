@@ -7,6 +7,7 @@ import { ETIQUETA_ROL, RolUsuario } from "../../types";
 import {
   UsuarioPersonal,
   actualizarUsuario,
+  eliminarUsuario,
   crearUsuario,
   listarPersonal,
   reiniciarPassword,
@@ -222,6 +223,25 @@ export function PersonalPage() {
                     >
                       {u.activo ? "Desactivar" : "Activar"}
                     </Button>
+                    {u.rol !== "ADMIN" && u.id !== user?.id && (
+                      <Button
+                        variant="danger"
+                        onClick={() => {
+                          if (!confirm(`¿Eliminar la cuenta de ${u.nombre} ${u.apellido}?`)) return;
+                          void ejecutar(async () => {
+                            const resultado = await eliminarUsuario(u.id);
+                            setPersonal((prev) => prev.filter((x) => x.id !== u.id));
+                            setAviso(
+                              resultado === "eliminado"
+                                ? `Cuenta de ${u.nombre} eliminada.`
+                                : `Cuenta de ${u.nombre} eliminada. Su nombre se conserva en citas, sesiones y demás registros donde participó.`
+                            );
+                          });
+                        }}
+                      >
+                        Eliminar
+                      </Button>
+                    )}
                   </div>
                 </li>
               ))}

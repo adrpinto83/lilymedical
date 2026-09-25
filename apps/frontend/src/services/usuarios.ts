@@ -59,3 +59,12 @@ export async function actualizarUsuario(
 export async function reiniciarPassword(id: string, nueva: string): Promise<void> {
   await api.post(`/usuarios/${id}/password`, { nueva });
 }
+
+/**
+ * Elimina a un miembro del personal (salvo el administrador del sistema).
+ * "archivado": tenía historial, así que se dio de baja sin borrar sus registros.
+ */
+export async function eliminarUsuario(id: string): Promise<"eliminado" | "archivado"> {
+  const { data } = await api.delete<{ resultado: "eliminado" | "archivado" }>(`/usuarios/${id}`);
+  return data.resultado;
+}

@@ -108,6 +108,10 @@ model Usuario {
   activo           Boolean    @default(true)
   intentosFallidos Int        @default(0) // login: intentos de contraseña incorrectos consecutivos (Fase 13)
   bloqueadoHasta   DateTime? // login: bloqueado temporalmente tras superar LOGIN_MAX_INTENTOS (Fase 13)
+  // Baja lógica: el usuario tenía historial (citas, sesiones, récipes...) y no
+  // se pudo borrar sin romperlo. Sale de la lista del personal, no puede
+  // entrar y su email queda libre; su nombre sigue en los registros pasados.
+  eliminadoEn      DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
