@@ -18,7 +18,7 @@ router.post("/login", loginRateLimit, validateBody(loginSchema), async (req, res
   res.json(result);
 });
 
-// Alta pública del portal del paciente (ver auth.service.registrarPaciente
+// Registro público en el portal del paciente (ver auth.service.registrarPaciente
 // para las validaciones de cédula/email contra la ficha ya existente).
 router.post(
   "/registro-paciente",
@@ -30,8 +30,8 @@ router.post(
   }
 );
 
-// Solo el médico (dueño del consultorio) o el administrador del sistema dan
-// de alta nuevos usuarios/staff
+// Solo el médico (dueño del consultorio) o el administrador del sistema crean
+// cuentas nuevas de usuarios/staff
 router.post(
   "/register",
   requireAuth,

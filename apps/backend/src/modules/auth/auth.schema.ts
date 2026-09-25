@@ -14,7 +14,7 @@ export const registerSchema = z.object({
   especialidad: z.string().optional(),
 });
 
-// Alta del portal del paciente: el paciente ya debe existir como ficha
+// Registro en el portal del paciente: el paciente ya debe existir como ficha
 // clínica (creada por el consultorio) y el email debe coincidir con el que
 // el consultorio tiene registrado, para evitar que cualquiera con la
 // cédula de otra persona pueda crearse una cuenta.

@@ -99,7 +99,7 @@ export function PersonalPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-semibold text-slate-900">Dar de alta a alguien</h2>
+          <h2 className="text-sm font-semibold text-slate-900">Crear una cuenta</h2>
         </CardHeader>
         <CardBody>
           <form onSubmit={crear} className="grid gap-4 sm:grid-cols-2">

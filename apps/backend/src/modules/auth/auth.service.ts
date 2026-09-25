@@ -94,7 +94,7 @@ export async function obtenerPerfilActual(usuarioId: string) {
   };
 }
 
-// Alta del portal del paciente: el paciente exige que el consultorio ya
+// Registro en el portal del paciente: el paciente exige que el consultorio ya
 // haya creado la ficha clínica de antemano; aquí solo se crea el login que
 // la vincula, validando cédula + email contra lo que el consultorio tiene
 // registrado.

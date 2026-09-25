@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// El médico dueño del consultorio da de alta al personal. No se permite crear
+// El médico dueño del consultorio crea las cuentas del personal. No se permite crear
 // cuentas PACIENTE desde aquí: esas nacen del portal, atadas a una ficha
 // clínica existente (ver auth.service.registrarPaciente).
 export const crearUsuarioSchema = z.object({
