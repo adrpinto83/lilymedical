@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Logo } from "../../components/layout/Logo";
+import { LogoInicio, VolverAlInicio } from "../../components/layout/Logo";
 import { verificarDocumento, ResultadoVerificacion } from "../../services/verificacion";
 import { format } from "date-fns";
 
@@ -13,10 +13,10 @@ export function VerificacionPage() {
   }, [codigo]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-lily-blue-50 via-white to-lily-pink-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-br from-lily-blue-50 via-white to-lily-pink-50 px-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <div className="mb-6 flex justify-center">
-          <Logo className="scale-110" />
+          <LogoInicio className="scale-110" />
         </div>
 
         {!resultado ? (
@@ -60,6 +60,7 @@ export function VerificacionPage() {
           </>
         )}
       </div>
+      <VolverAlInicio />
     </div>
   );
 }

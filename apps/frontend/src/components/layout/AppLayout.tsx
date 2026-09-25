@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import clsx from "clsx";
-import { Logo } from "./Logo";
+import { EnlaceSitioWeb, LogoInicio } from "./Logo";
 import { useAuth } from "../../context/AuthContext";
 import { ETIQUETA_ROL, RolUsuario } from "../../types";
 
@@ -50,7 +50,7 @@ export function AppLayout() {
             >
               ☰
             </button>
-            <Logo />
+            <LogoInicio />
           </div>
           <div className="flex items-center gap-3">
             {user && (
@@ -61,6 +61,7 @@ export function AppLayout() {
                 </span>
               </span>
             )}
+            <EnlaceSitioWeb />
             <button
               onClick={logout}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"

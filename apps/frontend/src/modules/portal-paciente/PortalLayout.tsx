@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import clsx from "clsx";
-import { Logo } from "../../components/layout/Logo";
+import { EnlaceSitioWeb, LogoInicio } from "../../components/layout/Logo";
 import { useAuth } from "../../context/AuthContext";
 
 const navItems = [
@@ -17,13 +17,14 @@ export function PortalLayout() {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Logo />
+          <LogoInicio />
           <div className="flex items-center gap-3">
             {user && (
               <span className="hidden text-sm text-slate-600 sm:block">
                 {user.nombre} {user.apellido}
               </span>
             )}
+            <EnlaceSitioWeb />
             <button
               onClick={logout}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"

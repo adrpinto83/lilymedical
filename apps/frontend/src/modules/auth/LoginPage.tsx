@@ -1,17 +1,21 @@
 import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "../../components/layout/Logo";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { LogoInicio, VolverAlInicio } from "../../components/layout/Logo";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { useAuth } from "../../context/AuthContext";
 import { HOME_POR_ROL } from "../../routes/ProtectedRoute";
 
 export function LoginPage() {
-  const { login, loading } = useAuth();
+  const { user, login, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Quien ya tiene sesión y vuelve desde la página de inicio entra directo a
+  // su panel en vez de ver otra vez el formulario.
+  if (user) return <Navigate to={HOME_POR_ROL[user.rol]} replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -25,10 +29,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-lily-blue-50 via-white to-lily-pink-50 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-br from-lily-blue-50 via-white to-lily-pink-50 px-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="mb-6 flex justify-center">
-          <Logo className="scale-110" />
+          <LogoInicio className="scale-110" />
         </div>
         <p className="mb-6 text-center text-sm text-slate-500">
           Sistema de gestión para consultorios de fisiatría
@@ -64,6 +68,7 @@ export function LoginPage() {
           </Link>
         </p>
       </div>
+      <VolverAlInicio />
     </div>
   );
 }
