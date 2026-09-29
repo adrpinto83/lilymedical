@@ -10,6 +10,8 @@ import { listarTarifas } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
 import { format } from "date-fns";
 
+const DURACIONES = [30, 45, 60, 90];
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -38,8 +40,14 @@ export function CitaFormModal({ open, onClose, onCreated, profesionales, fechaIn
   useEffect(() => {
     if (open) {
       listarTarifas().then(setTarifas).catch(() => setTarifas([]));
+      // Cada apertura empieza limpia: no arrastra el paciente ni las notas de la cita anterior.
+      setBusquedaPaciente("");
+      setError(null);
       setForm((f) => ({
         ...f,
+        pacienteId: "",
+        tarifaId: "",
+        notas: "",
         profesionalId: profesionalInicial ?? f.profesionalId,
         fecha: fechaInicial ? format(fechaInicial, "yyyy-MM-dd") : f.fecha,
         horaInicio: fechaInicial ? format(fechaInicial, "HH:mm") : f.horaInicio,
@@ -50,7 +58,12 @@ export function CitaFormModal({ open, onClose, onCreated, profesionales, fechaIn
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (open) listarPacientes(busquedaPaciente || undefined).then(setPacientes);
+      if (!open) return;
+      listarPacientes(busquedaPaciente || undefined).then((lista) => {
+        setPacientes(lista);
+        // Si la búsqueda deja un único paciente, se selecciona solo.
+        if (busquedaPaciente && lista.length === 1) setForm((f) => ({ ...f, pacienteId: lista[0].id }));
+      });
     }, 250);
     return () => clearTimeout(timeout);
   }, [busquedaPaciente, open]);
@@ -58,6 +71,12 @@ export function CitaFormModal({ open, onClose, onCreated, profesionales, fechaIn
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  const horaFin = (() => {
+    const inicio = new Date(`${form.fecha}T${form.horaInicio}:00`);
+    if (isNaN(inicio.getTime()) || !form.duracionMinutos) return null;
+    return format(new Date(inicio.getTime() + form.duracionMinutos * 60000), "HH:mm");
+  })();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -151,9 +170,27 @@ export function CitaFormModal({ open, onClose, onCreated, profesionales, fechaIn
             type="number"
             min={15}
             step={5}
+            required
             value={form.duracionMinutos}
             onChange={(e) => update("duracionMinutos", Number(e.target.value))}
           />
+        </div>
+        <div className="-mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          {DURACIONES.map((min) => (
+            <button
+              type="button"
+              key={min}
+              onClick={() => update("duracionMinutos", min)}
+              className={`rounded-full border px-2.5 py-0.5 ${
+                form.duracionMinutos === min
+                  ? "border-lily-blue-600 bg-lily-blue-600 text-white"
+                  : "border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              {min} min
+            </button>
+          ))}
+          {horaFin && <span className="ml-auto">Termina a las {horaFin}</span>}
         </div>
 
         <Input label="Notas" value={form.notas} onChange={(e) => update("notas", e.target.value)} />

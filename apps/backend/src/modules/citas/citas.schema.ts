@@ -1,13 +1,20 @@
 import { z } from "zod";
 
-export const crearCitaSchema = z.object({
-  pacienteId: z.string().uuid(),
-  profesionalId: z.string().uuid(),
-  tarifaId: z.string().uuid().optional(),
-  fechaHoraInicio: z.coerce.date(),
-  fechaHoraFin: z.coerce.date(),
-  notas: z.string().optional(),
-});
+const finDespuesDeInicio = {
+  message: "La hora de fin debe ser posterior a la de inicio",
+  path: ["fechaHoraFin"],
+};
+
+export const crearCitaSchema = z
+  .object({
+    pacienteId: z.string().uuid(),
+    profesionalId: z.string().uuid(),
+    tarifaId: z.string().uuid().optional(),
+    fechaHoraInicio: z.coerce.date(),
+    fechaHoraFin: z.coerce.date(),
+    notas: z.string().optional(),
+  })
+  .refine((d) => d.fechaHoraFin > d.fechaHoraInicio, finDespuesDeInicio);
 
 // Programa un paquete de sesiones recurrentes, ej. 10 sesiones, 3x/semana
 export const crearCitasRecurrentesSchema = z.object({
@@ -21,22 +28,32 @@ export const crearCitasRecurrentesSchema = z.object({
   notas: z.string().optional(),
 });
 
-export const actualizarCitaSchema = z.object({
-  fechaHoraInicio: z.coerce.date().optional(),
-  fechaHoraFin: z.coerce.date().optional(),
-  estado: z
-    .enum(["PROGRAMADA", "CONFIRMADA", "ATENDIDA", "CANCELADA", "NO_ASISTIO"])
-    .optional(),
-  tarifaId: z.string().uuid().optional(),
-  notas: z.string().optional(),
-});
+// Cambiar estado, reprogramar (fecha/hora y/o profesional) o corregir
+// servicio y notas. tarifaId/notas aceptan null para dejarlos vacíos.
+export const actualizarCitaSchema = z
+  .object({
+    profesionalId: z.string().uuid().optional(),
+    fechaHoraInicio: z.coerce.date().optional(),
+    fechaHoraFin: z.coerce.date().optional(),
+    estado: z
+      .enum(["PROGRAMADA", "CONFIRMADA", "ATENDIDA", "CANCELADA", "NO_ASISTIO"])
+      .optional(),
+    tarifaId: z.string().uuid().nullable().optional(),
+    notas: z.string().nullable().optional(),
+  })
+  .refine(
+    (d) => !d.fechaHoraInicio || !d.fechaHoraFin || d.fechaHoraFin > d.fechaHoraInicio,
+    finDespuesDeInicio
+  );
 
-export const crearBloqueoSchema = z.object({
-  profesionalId: z.string().uuid(),
-  fechaHoraInicio: z.coerce.date(),
-  fechaHoraFin: z.coerce.date(),
-  motivo: z.string().optional(),
-});
+export const crearBloqueoSchema = z
+  .object({
+    profesionalId: z.string().uuid(),
+    fechaHoraInicio: z.coerce.date(),
+    fechaHoraFin: z.coerce.date(),
+    motivo: z.string().optional(),
+  })
+  .refine((d) => d.fechaHoraFin > d.fechaHoraInicio, finDespuesDeInicio);
 
 export type CrearCitaInput = z.infer<typeof crearCitaSchema>;
 export type CrearCitasRecurrentesInput = z.infer<typeof crearCitasRecurrentesSchema>;

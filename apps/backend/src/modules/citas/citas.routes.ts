@@ -53,6 +53,11 @@ router.put("/:id", soloGestion, validateBody(actualizarCitaSchema), async (req, 
   res.json(cita);
 });
 
+router.get("/grupo/:grupoRecurrenciaId", async (req, res) => {
+  const citas = await citasService.listarGrupoRecurrente(req.params.grupoRecurrenciaId);
+  res.json(citas);
+});
+
 router.post("/grupo/:grupoRecurrenciaId/cancelar", soloGestion, async (req, res) => {
   const resultado = await citasService.cancelarGrupoRecurrente(req.params.grupoRecurrenciaId);
   res.json(resultado);

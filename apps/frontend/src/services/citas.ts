@@ -1,5 +1,5 @@
 import { api } from "./api";
-import { Cita, BloqueoHorario } from "../types";
+import { Cita, BloqueoHorario, EstadoCita } from "../types";
 
 export async function listarCitas(desde: Date, hasta: Date, profesionalId?: string): Promise<Cita[]> {
   const { data } = await api.get<Cita[]>("/citas", {
@@ -34,8 +34,23 @@ export async function crearCitasRecurrentes(payload: {
   return data;
 }
 
-export async function actualizarCita(id: string, payload: Partial<Cita>): Promise<Cita> {
+export async function actualizarCita(
+  id: string,
+  payload: {
+    profesionalId?: string;
+    fechaHoraInicio?: string;
+    fechaHoraFin?: string;
+    estado?: EstadoCita;
+    tarifaId?: string | null;
+    notas?: string | null;
+  }
+): Promise<Cita> {
   const { data } = await api.put<Cita>(`/citas/${id}`, payload);
+  return data;
+}
+
+export async function listarGrupoRecurrente(grupoRecurrenciaId: string): Promise<Cita[]> {
+  const { data } = await api.get<Cita[]>(`/citas/grupo/${grupoRecurrenciaId}`);
   return data;
 }
 

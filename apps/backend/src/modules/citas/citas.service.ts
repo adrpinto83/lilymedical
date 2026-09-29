@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { EstadoCita, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import {
@@ -8,6 +9,17 @@ import {
   CrearBloqueoInput,
 } from "./citas.schema";
 
+const citaInclude = {
+  paciente: { select: { id: true, nombres: true, apellidos: true, telefono: true } },
+  profesional: { select: { id: true, nombre: true, apellido: true } },
+  tarifa: true,
+} satisfies Prisma.CitaInclude;
+
+// Estados que ya no ocupan el horario del profesional.
+const ESTADOS_LIBERAN_HORARIO: EstadoCita[] = ["CANCELADA", "NO_ASISTIO"];
+
+// El mensaje nombra al paciente o el motivo del bloqueo con el que choca para
+// que quien agenda sepa qué mover sin tener que buscarlo en la agenda.
 async function verificarDisponibilidad(
   profesionalId: string,
   inicio: Date,
@@ -18,13 +30,18 @@ async function verificarDisponibilidad(
     where: {
       profesionalId,
       id: citaIdExcluir ? { not: citaIdExcluir } : undefined,
-      estado: { notIn: ["CANCELADA", "NO_ASISTIO"] },
+      estado: { notIn: ESTADOS_LIBERAN_HORARIO },
       fechaHoraInicio: { lt: fin },
       fechaHoraFin: { gt: inicio },
     },
+    include: { paciente: { select: { nombres: true, apellidos: true } } },
   });
   if (conflictoCita) {
-    throw new HttpError(409, "El profesional ya tiene una cita en ese horario");
+    const { apellidos, nombres } = conflictoCita.paciente;
+    throw new HttpError(
+      409,
+      `El profesional ya tiene una cita en ese horario (paciente: ${apellidos}, ${nombres})`
+    );
   }
 
   const conflictoBloqueo = await prisma.bloqueoHorario.findFirst({
@@ -35,7 +52,10 @@ async function verificarDisponibilidad(
     },
   });
   if (conflictoBloqueo) {
-    throw new HttpError(409, "El profesional tiene bloqueado ese horario");
+    throw new HttpError(
+      409,
+      `El profesional tiene bloqueado ese horario${conflictoBloqueo.motivo ? ` (${conflictoBloqueo.motivo})` : ""}`
+    );
   }
 }
 
@@ -47,11 +67,7 @@ export async function listarCitas(desde: Date, hasta: Date, profesionalId?: stri
       profesionalId,
     },
     orderBy: { fechaHoraInicio: "asc" },
-    include: {
-      paciente: { select: { id: true, nombres: true, apellidos: true, telefono: true } },
-      profesional: { select: { id: true, nombre: true, apellido: true } },
-      tarifa: true,
-    },
+    include: citaInclude,
   });
 }
 
@@ -85,9 +101,16 @@ export async function crearCitasRecurrentes(data: CrearCitasRecurrentesInput) {
   }
 
   // Verifica disponibilidad de todas las fechas antes de crear nada
-  for (const fecha of fechas) {
+  for (const [index, fecha] of fechas.entries()) {
     const fin = new Date(fecha.getTime() + data.duracionMinutos * 60000);
-    await verificarDisponibilidad(data.profesionalId, fecha, fin);
+    try {
+      await verificarDisponibilidad(data.profesionalId, fecha, fin);
+    } catch (err) {
+      if (err instanceof HttpError) {
+        throw new HttpError(err.status, `Sesión ${index + 1} de ${data.totalSesiones}: ${err.message}`);
+      }
+      throw err;
+    }
   }
 
   const citas = await prisma.$transaction(
@@ -117,16 +140,45 @@ export async function actualizarCita(id: string, data: ActualizarCitaInput) {
   const cita = await prisma.cita.findUnique({ where: { id } });
   if (!cita) throw new HttpError(404, "Cita no encontrada");
 
-  if (data.fechaHoraInicio || data.fechaHoraFin) {
-    await verificarDisponibilidad(
-      cita.profesionalId,
-      data.fechaHoraInicio ?? cita.fechaHoraInicio,
-      data.fechaHoraFin ?? cita.fechaHoraFin,
-      id
-    );
+  const profesionalId = data.profesionalId ?? cita.profesionalId;
+  const inicio = data.fechaHoraInicio ?? cita.fechaHoraInicio;
+  const fin = data.fechaHoraFin ?? cita.fechaHoraFin;
+  const estado = data.estado ?? cita.estado;
+
+  const reprograma =
+    profesionalId !== cita.profesionalId ||
+    inicio.getTime() !== cita.fechaHoraInicio.getTime() ||
+    fin.getTime() !== cita.fechaHoraFin.getTime();
+
+  if (reprograma && cita.estado === "ATENDIDA") {
+    throw new HttpError(409, "No se puede reprogramar una cita ya atendida");
+  }
+  if (fin <= inicio) {
+    throw new HttpError(400, "La hora de fin debe ser posterior a la de inicio");
   }
 
-  return prisma.cita.update({ where: { id }, data });
+  // Si cambia el horario o se reactiva una cita cancelada / no asistida, el
+  // hueco pudo haberse ocupado mientras tanto.
+  const reactiva = ESTADOS_LIBERAN_HORARIO.includes(cita.estado) && !ESTADOS_LIBERAN_HORARIO.includes(estado);
+  if ((reprograma && !ESTADOS_LIBERAN_HORARIO.includes(estado)) || reactiva) {
+    await verificarDisponibilidad(profesionalId, inicio, fin, id);
+  }
+
+  return prisma.cita.update({
+    where: { id },
+    // Al cambiar la fecha el recordatorio ya enviado quedó desactualizado.
+    data: reprograma ? { ...data, recordatorioEnviado: false } : data,
+    include: citaInclude,
+  });
+}
+
+// Todas las sesiones de un paquete, para ver el avance desde cualquiera de ellas.
+export async function listarGrupoRecurrente(grupoRecurrenciaId: string) {
+  return prisma.cita.findMany({
+    where: { grupoRecurrenciaId },
+    orderBy: { fechaHoraInicio: "asc" },
+    include: citaInclude,
+  });
 }
 
 export async function cancelarGrupoRecurrente(grupoRecurrenciaId: string) {

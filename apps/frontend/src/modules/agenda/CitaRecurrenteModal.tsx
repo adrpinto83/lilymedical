@@ -9,6 +9,7 @@ import { listarPacientes } from "../../services/pacientes";
 import { listarTarifas } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 const dias = [
   { value: 1, label: "Lun" },
@@ -20,16 +21,31 @@ const dias = [
   { value: 0, label: "Dom" },
 ];
 
+// Mismo cálculo que el backend (citas.service): recorre día a día desde la
+// fecha de inicio y toma los que caen en los días elegidos.
+function calcularFechas(inicio: Date, diasSemana: number[], total: number): Date[] {
+  const fechas: Date[] = [];
+  if (isNaN(inicio.getTime()) || diasSemana.length === 0 || total < 1) return fechas;
+  const cursor = new Date(inicio);
+  for (let i = 0; i < 400 && fechas.length < total; i++) {
+    if (diasSemana.includes(cursor.getDay())) fechas.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return fechas;
+}
+
 export function CitaRecurrenteModal({
   open,
   onClose,
   onCreated,
   profesionales,
+  profesionalInicial,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   profesionales: Profesional[];
+  profesionalInicial?: string;
 }) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [tarifas, setTarifas] = useState<Tarifa[]>([]);
@@ -49,12 +65,31 @@ export function CitaRecurrenteModal({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) listarTarifas().then(setTarifas).catch(() => setTarifas([]));
-  }, [open]);
+    if (!open) return;
+    listarTarifas().then(setTarifas).catch(() => setTarifas([]));
+    setBusquedaPaciente("");
+    setError(null);
+    setForm((f) => ({
+      ...f,
+      pacienteId: "",
+      notas: "",
+      profesionalId: profesionalInicial ?? f.profesionalId,
+    }));
+  }, [open, profesionalInicial]);
+
+  const fechasPrevistas = calcularFechas(
+    new Date(`${form.fecha}T${form.horaInicio}:00`),
+    form.diasSemana,
+    form.totalSesiones
+  );
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (open) listarPacientes(busquedaPaciente || undefined).then(setPacientes);
+      if (!open) return;
+      listarPacientes(busquedaPaciente || undefined).then((lista) => {
+        setPacientes(lista);
+        if (busquedaPaciente && lista.length === 1) setForm((f) => ({ ...f, pacienteId: lista[0].id }));
+      });
     }, 250);
     return () => clearTimeout(timeout);
   }, [busquedaPaciente, open]);
@@ -105,6 +140,7 @@ export function CitaRecurrenteModal({
             label="Buscar paciente"
             value={busquedaPaciente}
             onChange={(e) => setBusquedaPaciente(e.target.value)}
+            placeholder="Nombre, documento o teléfono"
           />
           <Select
             className="mt-2"
@@ -202,6 +238,24 @@ export function CitaRecurrenteModal({
             onChange={(e) => setForm((f) => ({ ...f, totalSesiones: Number(e.target.value) }))}
           />
         </div>
+
+        {fechasPrevistas.length > 0 && (
+          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+            <p className="mb-1.5 font-medium text-slate-700">
+              {fechasPrevistas.length} sesiones: del{" "}
+              {format(fechasPrevistas[0], "d MMM", { locale: es })} al{" "}
+              {format(fechasPrevistas[fechasPrevistas.length - 1], "d MMM yyyy", { locale: es })} a las{" "}
+              {form.horaInicio}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {fechasPrevistas.map((f, i) => (
+                <span key={i} className="rounded border border-slate-200 bg-white px-1.5 py-0.5 capitalize">
+                  {format(f, "EEE d/MM", { locale: es })}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Input
           label="Notas"
