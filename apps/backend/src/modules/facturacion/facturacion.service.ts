@@ -177,6 +177,31 @@ export async function crearFactura(data: CrearFacturaInput) {
       };
     });
 
+    // Una cita (sesión) se factura una sola vez y solo al paciente que la tuvo.
+    const citaIds = data.detalles.map((d) => d.citaId).filter((id): id is string => !!id);
+    if (citaIds.length > 0) {
+      const citas = await tx.cita.findMany({
+        where: { id: { in: citaIds } },
+        include: {
+          facturaDetalles: {
+            where: { factura: { estado: { not: "ANULADA" } } },
+            select: { factura: { select: { numeroFactura: true } } },
+          },
+        },
+      });
+      if (citas.length !== citaIds.length) throw new HttpError(400, "Alguna de las citas indicadas no existe");
+      for (const c of citas) {
+        if (c.pacienteId !== data.pacienteId) throw new HttpError(400, "Una de las citas pertenece a otro paciente");
+        if (c.facturaDetalles.length > 0) {
+          const fecha = c.fechaHoraInicio.toLocaleDateString("es-VE");
+          throw new HttpError(
+            409,
+            `La cita del ${fecha} ya está en la factura ${c.facturaDetalles[0].factura.numeroFactura}`
+          );
+        }
+      }
+    }
+
     const impuestos = new Prisma.Decimal(data.impuestos);
     const total = subtotal.add(impuestos);
 
@@ -238,11 +263,36 @@ function conSaldo<T extends { total: Prisma.Decimal; pagos: { monto: Prisma.Deci
   return { ...factura, pagado, saldo: factura.total.sub(pagado) };
 }
 
-export async function listarFacturas(pacienteId?: string, estado?: string) {
+export interface FiltrosFacturas {
+  pacienteId?: string;
+  /** Un estado o "CON_SALDO" (pendientes y parciales). */
+  estado?: string;
+  desde?: Date;
+  hasta?: Date;
+  /** Número de factura, nombre, apellido o documento del paciente. */
+  q?: string;
+}
+
+export async function listarFacturas(filtros: FiltrosFacturas = {}) {
+  const { pacienteId, estado, desde, hasta, q } = filtros;
   const facturas = await prisma.factura.findMany({
     where: {
       pacienteId,
-      estado: estado ? (estado as EstadoFactura) : undefined,
+      estado:
+        estado === "CON_SALDO"
+          ? { in: ["PENDIENTE", "PARCIAL"] }
+          : estado
+            ? (estado as EstadoFactura)
+            : undefined,
+      fecha: desde || hasta ? { ...(desde ? { gte: desde } : {}), ...(hasta ? { lte: hasta } : {}) } : undefined,
+      OR: q
+        ? [
+            { numeroFactura: { contains: q, mode: "insensitive" } },
+            { paciente: { nombres: { contains: q, mode: "insensitive" } } },
+            { paciente: { apellidos: { contains: q, mode: "insensitive" } } },
+            { paciente: { documento: { contains: q, mode: "insensitive" } } },
+          ]
+        : undefined,
     },
     orderBy: { fecha: "desc" },
     include: {
@@ -312,7 +362,14 @@ export async function registrarPago(
     const factura = await bloquearFactura(tx, facturaId);
     if (factura.estado === "ANULADA") throw new HttpError(400, "La factura está anulada");
 
-    const nuevoTotalPagado = sumarPagosActivos(factura.pagos).add(data.monto);
+    // Cobro en bolívares: el monto en dólares sale de la tasa indicada.
+    const montoUsd =
+      data.montoBs !== undefined && data.tasaCambio !== undefined
+        ? new Prisma.Decimal(data.montoBs).div(data.tasaCambio).toDecimalPlaces(2)
+        : new Prisma.Decimal(data.monto!);
+    if (montoUsd.lte(0)) throw new HttpError(400, "El monto del pago debe ser mayor que cero");
+
+    const nuevoTotalPagado = sumarPagosActivos(factura.pagos).add(montoUsd);
     if (nuevoTotalPagado.gt(factura.total)) {
       throw new HttpError(400, "El monto excede el saldo pendiente de la factura");
     }
@@ -320,9 +377,11 @@ export async function registrarPago(
     const pago = await tx.pago.create({
       data: {
         facturaId,
-        monto: data.monto,
+        monto: montoUsd,
         metodoPago: data.metodoPago,
         referencia: data.referencia,
+        montoBs: data.montoBs,
+        tasaCambio: data.tasaCambio,
         fecha: data.fecha ?? new Date(),
         registradoPorId,
       },
@@ -366,6 +425,27 @@ export async function anularPago(
     });
 
     return anulado;
+  });
+}
+
+// Citas atendidas del paciente que todavía no están en ninguna factura
+// vigente: lo que falta por cobrar de su tratamiento.
+export async function citasPorFacturar(pacienteId: string) {
+  return prisma.cita.findMany({
+    where: {
+      pacienteId,
+      estado: "ATENDIDA",
+      facturaDetalles: { none: { factura: { estado: { not: "ANULADA" } } } },
+    },
+    orderBy: { fechaHoraInicio: "asc" },
+    select: {
+      id: true,
+      fechaHoraInicio: true,
+      numeroSesionEnGrupo: true,
+      totalSesionesGrupo: true,
+      tarifa: true,
+      profesional: { select: { nombre: true, apellido: true } },
+    },
   });
 }
 

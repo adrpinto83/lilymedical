@@ -22,7 +22,12 @@ const METODO: Record<string, string> = {
   TARJETA: "Tarjeta",
   SEGURO: "Seguro",
   TRANSFERENCIA: "Transferencia",
+  PAGO_MOVIL: "Pago móvil",
+  ZELLE: "Zelle",
 };
+
+const bs = (d: Prisma.Decimal) =>
+  `Bs ${Number(d).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const monto = (d: Prisma.Decimal) =>
   `$${Number(d).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -122,6 +127,7 @@ export function generarFacturaPdf(doc: PDFKit.PDFDocument, factura: FacturaParaP
       const y = doc.y;
       const texto =
         `${p.fecha.toLocaleDateString("es-VE")}  ·  ${METODO[p.metodoPago] ?? p.metodoPago}` +
+        (p.montoBs && p.tasaCambio ? `  ·  ${bs(p.montoBs)} a ${Number(p.tasaCambio).toLocaleString("es-VE")} Bs/$` : "") +
         (p.referencia ? `  ·  Ref. ${p.referencia}` : "") +
         (p.anulado ? "  ·  ANULADO" : "");
       doc

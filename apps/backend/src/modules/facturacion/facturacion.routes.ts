@@ -37,12 +37,21 @@ router.delete("/tarifas/:id", async (req, res) => {
 
 // Facturas
 router.get("/facturas", async (req, res) => {
-  const { pacienteId, estado } = req.query;
+  const { pacienteId, estado, desde, hasta, q } = req.query;
+  const fecha = (v: unknown) => {
+    if (!v) return undefined;
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) throw new HttpError(400, "Fecha inválida");
+    return d;
+  };
   res.json(
-    await facturacionService.listarFacturas(
-      pacienteId ? String(pacienteId) : undefined,
-      estado ? String(estado) : undefined
-    )
+    await facturacionService.listarFacturas({
+      pacienteId: pacienteId ? String(pacienteId) : undefined,
+      estado: estado ? String(estado) : undefined,
+      desde: fecha(desde),
+      hasta: fecha(hasta),
+      q: q ? String(q).trim() || undefined : undefined,
+    })
   );
 });
 router.get("/facturas/:id", async (req, res) => {
@@ -91,6 +100,10 @@ router.post(
     );
   }
 );
+
+router.get("/pacientes/:pacienteId/citas-por-facturar", async (req, res) => {
+  res.json(await facturacionService.citasPorFacturar(req.params.pacienteId));
+});
 
 // Estado de cuenta
 router.get("/pacientes/:pacienteId/estado-cuenta", async (req, res) => {

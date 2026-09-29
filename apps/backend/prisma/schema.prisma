@@ -73,6 +73,8 @@ enum MetodoPago {
   TARJETA
   SEGURO
   TRANSFERENCIA
+  PAGO_MOVIL
+  ZELLE
 }
 
 enum TipoMovimientoInsumo {
@@ -478,6 +480,10 @@ model Pago {
   metodoPago      MetodoPago
   fecha           DateTime   @default(now())
   referencia      String?
+  // Pago hecho en bolívares: `monto` sigue en dólares (moneda de las tarifas)
+  // y aquí queda lo recibido en Bs y la tasa usada para convertirlo.
+  montoBs         Decimal?   @db.Decimal(14, 2)
+  tasaCambio      Decimal?   @db.Decimal(14, 4)
   registradoPorId String
   // Un pago mal registrado o reembolsado no se borra: se anula y deja de
   // contar para el saldo, los ingresos y el estado de la factura.

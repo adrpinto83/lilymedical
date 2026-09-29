@@ -9,6 +9,7 @@ vi.mock("../../lib/prisma", () => {
     pacienteAseguradora: { findFirst: vi.fn() },
     autorizacionSeguro: { findMany: vi.fn() },
     factura: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    cita: { findMany: vi.fn() },
     pago: { create: vi.fn(), update: vi.fn() },
     $queryRaw: vi.fn().mockResolvedValue([]),
   };
@@ -116,6 +117,30 @@ describe("crearFactura", () => {
     expect(data.montoPaciente.toString()).toBe("90");
   });
 
+  it("no factura dos veces la misma cita", async () => {
+    db.cita.findMany.mockResolvedValue([
+      {
+        id: "c1",
+        pacienteId: "p1",
+        fechaHoraInicio: new Date(2026, 8, 20, 10),
+        facturaDetalles: [{ factura: { numeroFactura: "LM-2026-00007" } }],
+      },
+    ]);
+    await expect(
+      crearFactura({ ...base, detalles: [{ tarifaId: "t1", cantidad: 1, citaId: "c1" }] })
+    ).rejects.toThrow(/ya está en la factura LM-2026-00007/);
+    expect(db.factura.create).not.toHaveBeenCalled();
+  });
+
+  it("rechaza citas de otro paciente", async () => {
+    db.cita.findMany.mockResolvedValue([
+      { id: "c1", pacienteId: "otro", fechaHoraInicio: new Date(), facturaDetalles: [] },
+    ]);
+    await expect(
+      crearFactura({ ...base, detalles: [{ tarifaId: "t1", cantidad: 1, citaId: "c1" }] })
+    ).rejects.toThrow(/otro paciente/);
+  });
+
   it("rechaza pacientes inactivos", async () => {
     db.paciente.findUnique.mockResolvedValue({ ...paciente, activo: false });
     await expect(crearFactura(base)).rejects.toThrow(/inactivo/);
@@ -187,6 +212,17 @@ describe("pagos", () => {
     db.pago.create.mockResolvedValue({ id: "pg3" });
     await registrarPago("f1", "u1", { monto: 40, metodoPago: "EFECTIVO" });
     expect(db.factura.update).toHaveBeenCalledWith({ where: { id: "f1" }, data: { estado: "PAGADA" } });
+  });
+
+  it("un pago en bolívares se convierte a dólares con la tasa y guarda lo recibido", async () => {
+    db.factura.findUnique.mockResolvedValue(factura([]));
+    db.pago.create.mockResolvedValue({ id: "pg1" });
+    await registrarPago("f1", "u1", { metodoPago: "PAGO_MOVIL", montoBs: 1825, tasaCambio: 36.5 });
+    const { data } = db.pago.create.mock.calls[0][0];
+    expect(data.monto.toString()).toBe("50");
+    expect(data.montoBs).toBe(1825);
+    expect(data.tasaCambio).toBe(36.5);
+    expect(db.factura.update).toHaveBeenCalledWith({ where: { id: "f1" }, data: { estado: "PARCIAL" } });
   });
 
   it("bloquea la fila de la factura antes de validar el saldo", async () => {

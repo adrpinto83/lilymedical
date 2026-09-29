@@ -10,7 +10,7 @@ export const ETIQUETA_ROL: Record<RolUsuario, string> = {
 export type SexoPaciente = "MASCULINO" | "FEMENINO" | "OTRO";
 export type EstadoCita = "PROGRAMADA" | "CONFIRMADA" | "ATENDIDA" | "CANCELADA" | "NO_ASISTIO";
 export type EstadoFactura = "PENDIENTE" | "PAGADA" | "PARCIAL" | "ANULADA";
-export type MetodoPago = "EFECTIVO" | "TARJETA" | "SEGURO" | "TRANSFERENCIA";
+export type MetodoPago = "EFECTIVO" | "TARJETA" | "SEGURO" | "TRANSFERENCIA" | "PAGO_MOVIL" | "ZELLE";
 export type TipoReceta = "MEDICAMENTO" | "ORDEN_TERAPIA";
 export type TipoEscala =
   | "BARTHEL"
@@ -204,6 +204,7 @@ export interface Factura {
   notas?: string | null;
   detalles?: FacturaDetalle[];
   pagos?: Pago[];
+  autorizacion?: { numeroAutorizacion?: string | null } | null;
   montoAseguradora?: string | null;
   montoPaciente?: string;
   pagado?: string;
@@ -217,6 +218,8 @@ export interface Pago {
   metodoPago: MetodoPago;
   fecha: string;
   referencia?: string | null;
+  montoBs?: string | null;
+  tasaCambio?: string | null;
   anulado: boolean;
   anuladoEn?: string | null;
   motivoAnulacion?: string | null;

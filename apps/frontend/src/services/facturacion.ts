@@ -16,10 +16,43 @@ export async function crearTarifa(payload: {
   return data;
 }
 
-export async function listarFacturas(pacienteId?: string, estado?: string): Promise<Factura[]> {
-  const { data } = await api.get<Factura[]>("/facturacion/facturas", {
-    params: { pacienteId, estado },
-  });
+export async function actualizarTarifa(
+  id: string,
+  payload: { nombreServicio?: string; precio?: number }
+): Promise<Tarifa> {
+  const { data } = await api.put<Tarifa>(`/facturacion/tarifas/${id}`, payload);
+  return data;
+}
+
+export async function desactivarTarifa(id: string): Promise<void> {
+  await api.delete(`/facturacion/tarifas/${id}`);
+}
+
+export interface FiltrosFacturas {
+  pacienteId?: string;
+  /** Un estado o "CON_SALDO" (pendientes y parciales). */
+  estado?: string;
+  desde?: string;
+  hasta?: string;
+  q?: string;
+}
+
+export async function listarFacturas(filtros: FiltrosFacturas = {}): Promise<Factura[]> {
+  const { data } = await api.get<Factura[]>("/facturacion/facturas", { params: filtros });
+  return data;
+}
+
+export interface CitaPorFacturar {
+  id: string;
+  fechaHoraInicio: string;
+  numeroSesionEnGrupo?: number | null;
+  totalSesionesGrupo?: number | null;
+  tarifa?: Tarifa | null;
+  profesional?: { nombre: string; apellido: string };
+}
+
+export async function listarCitasPorFacturar(pacienteId: string): Promise<CitaPorFacturar[]> {
+  const { data } = await api.get<CitaPorFacturar[]>(`/facturacion/pacientes/${pacienteId}/citas-por-facturar`);
   return data;
 }
 
@@ -31,6 +64,7 @@ export async function obtenerFactura(id: string): Promise<Factura> {
 export async function crearFactura(payload: {
   pacienteId: string;
   aseguradoraId?: string;
+  autorizacionId?: string;
   impuestos?: number;
   notas?: string;
   detalles: { tarifaId: string; citaId?: string; sesionId?: string; cantidad?: number; descripcion?: string }[];
@@ -46,7 +80,7 @@ export async function anularFactura(id: string): Promise<Factura> {
 
 export async function registrarPago(
   facturaId: string,
-  payload: { monto: number; metodoPago: string; referencia?: string }
+  payload: { monto?: number; metodoPago: string; referencia?: string; montoBs?: number; tasaCambio?: number }
 ): Promise<Pago> {
   const { data } = await api.post<Pago>(`/facturacion/facturas/${facturaId}/pagos`, payload);
   return data;
