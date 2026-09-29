@@ -144,7 +144,15 @@ export async function obtenerDashboard() {
 export async function reporteIngresosPorPeriodo(desde: Date, hasta: Date) {
   const pagos = await prisma.pago.findMany({
     where: { fecha: { gte: desde, lte: hasta }, anulado: false },
-    include: { factura: { select: { numeroFactura: true, pacienteId: true } } },
+    include: {
+      factura: {
+        select: {
+          numeroFactura: true,
+          pacienteId: true,
+          paciente: { select: { nombres: true, apellidos: true, documento: true } },
+        },
+      },
+    },
     orderBy: { fecha: "asc" },
   });
 
@@ -201,9 +209,24 @@ export async function reporteCobrosAseguradora(desde: Date, hasta: Date, asegura
     include: {
       paciente: { select: { nombres: true, apellidos: true, documento: true } },
       aseguradora: true,
+      autorizacion: { select: { numeroAutorizacion: true } },
+      pagos: { where: { anulado: false }, select: { monto: true } },
     },
     orderBy: [{ aseguradoraId: "asc" }, { fecha: "asc" }],
   });
 
   return facturas;
+}
+
+// Facturas con saldo (pendientes o parciales), de la más antigua a la más nueva.
+export async function facturasConSaldo() {
+  return prisma.factura.findMany({
+    where: { estado: { in: ["PENDIENTE", "PARCIAL"] } },
+    include: {
+      paciente: { select: { nombres: true, apellidos: true, documento: true, telefono: true } },
+      aseguradora: { select: { nombre: true } },
+      pagos: { where: { anulado: false }, select: { monto: true } },
+    },
+    orderBy: { fecha: "asc" },
+  });
 }

@@ -41,7 +41,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white print:hidden">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
@@ -76,7 +76,7 @@ export function AppLayout() {
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6">
         <aside
           className={clsx(
-            "fixed inset-y-0 left-0 z-30 w-64 -translate-x-full border-r border-slate-200 bg-white pt-20 transition-transform lg:static lg:translate-x-0 lg:border-0 lg:bg-transparent lg:pt-0",
+            "fixed inset-y-0 left-0 z-30 w-64 -translate-x-full print:hidden border-r border-slate-200 bg-white pt-20 transition-transform lg:static lg:translate-x-0 lg:border-0 lg:bg-transparent lg:pt-0",
             menuOpen && "translate-x-0"
           )}
         >

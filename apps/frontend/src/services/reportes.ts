@@ -61,6 +61,10 @@ export async function reporteServiciosMasSolicitados(desde: Date, hasta: Date) {
   return data;
 }
 
+const fechaArchivo = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const sufijoArchivo = (desde: Date, hasta: Date) => `${fechaArchivo(desde)}_a_${fechaArchivo(hasta)}`;
+
 function descargarBlob(blob: Blob, nombreArchivo: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -77,7 +81,7 @@ export async function descargarIngresosCsv(desde: Date, hasta: Date) {
     params: { desde: desde.toISOString(), hasta: hasta.toISOString() },
     responseType: "blob",
   });
-  descargarBlob(new Blob([data], { type: "text/csv" }), "ingresos.csv");
+  descargarBlob(new Blob([data], { type: "text/csv" }), `ingresos_${sufijoArchivo(desde, hasta)}.csv`);
 }
 
 export async function reporteCobrosAseguradora(desde: Date, hasta: Date, aseguradoraId?: string) {
@@ -92,5 +96,64 @@ export async function descargarCobrosAseguradoraCsv(desde: Date, hasta: Date, as
     params: { desde: desde.toISOString(), hasta: hasta.toISOString(), aseguradoraId },
     responseType: "blob",
   });
-  descargarBlob(new Blob([data], { type: "text/csv" }), "cobros-aseguradora.csv");
+  descargarBlob(new Blob([data], { type: "text/csv" }), `cobros-aseguradoras_${sufijoArchivo(desde, hasta)}.csv`);
+}
+
+export interface ResumenReporte {
+  periodo: { desde: string; hasta: string; anteriorDesde: string; anteriorHasta: string };
+  actual: KpisReporte;
+  anterior: KpisReporte;
+  finanzas: {
+    facturas: number;
+    facturado: string;
+    facturadoAseguradoras: string;
+    facturadoParticular: string;
+    ticketPromedio: string;
+    cobrado: string;
+    recibidoEnBs: string;
+    serie: { granularidad: "dia" | "mes"; puntos: { fecha: string; total: string }[] };
+    porMetodo: { metodo: string; total: string; totalBs: string; cantidad: number }[];
+  };
+  porCobrar: {
+    total: string;
+    pacientes: string;
+    aseguradoras: string;
+    antiguedad: { etiqueta: string; saldo: string; facturas: number }[];
+    porAseguradora: { nombre: string; saldo: string; facturas: number }[];
+  };
+  agenda: {
+    total: number;
+    estados: Record<EstadoCita, number>;
+    tasaAsistencia: number | null;
+    pacientesAtendidos: number;
+    porProfesional: { nombre: string; atendidas: number; noAsistio: number; canceladas: number; total: number }[];
+  };
+  servicios: { servicio: string; cantidad: number; total: string }[];
+  clinico: {
+    sesiones: number;
+    sesionesConEva: number;
+    evaPrePromedio: number | null;
+    evaPostPromedio: number | null;
+    sesionesConAlivio: number;
+    modalidades: { nombre: string; veces: number }[];
+  } | null;
+}
+
+export interface KpisReporte {
+  cobrado: string;
+  facturado: string;
+  citasAtendidas: number;
+  pacientesNuevos: number;
+}
+
+export async function obtenerResumen(desde: Date, hasta: Date): Promise<ResumenReporte> {
+  const { data } = await api.get<ResumenReporte>("/reportes/resumen", {
+    params: { desde: desde.toISOString(), hasta: hasta.toISOString() },
+  });
+  return data;
+}
+
+export async function descargarCuentasPorCobrarCsv() {
+  const { data } = await api.get("/reportes/cuentas-por-cobrar.csv", { responseType: "blob" });
+  descargarBlob(new Blob([data], { type: "text/csv" }), "cuentas-por-cobrar.csv");
 }
