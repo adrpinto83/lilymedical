@@ -13,7 +13,10 @@ import { AdjuntosPanel } from "./AdjuntosPanel";
 import { PacienteAseguradorasPanel } from "./PacienteAseguradorasPanel";
 import { AutorizacionesPanel } from "./AutorizacionesPanel";
 import { DocumentosPanel } from "../documentos/DocumentosPanel";
-import { format } from "date-fns";
+import { differenceInYears, format } from "date-fns";
+import { enlaceWhatsApp } from "../agenda/agendaUtils";
+
+const SEXO_LABEL = { MASCULINO: "Masculino", FEMENINO: "Femenino", OTRO: "Otro" } as const;
 
 type Tab = "datos" | "clinico" | "estudios" | "documentos" | "seguros" | "facturacion";
 
@@ -21,10 +24,15 @@ export function PacienteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [paciente, setPaciente] = useState<Paciente | null>(null);
-  const [tab, setTab] = useState<Tab>("datos");
   const [editOpen, setEditOpen] = useState(false);
 
-  const puedeVerClinico = user?.rol === "MEDICO";
+  const esMedico = user?.rol === "MEDICO";
+  const esAyudante = user?.rol === "FISIATRA_AYUDANTE";
+  // El ayudante registra la evolución: ve la historia, pero no estudios,
+  // documentos (actos médicos) ni la parte administrativa.
+  const puedeVerHistoria = esMedico || esAyudante;
+  const puedeGestionar = !esAyudante;
+  const [tab, setTab] = useState<Tab>(puedeVerHistoria ? "clinico" : "datos");
 
   useEffect(() => {
     if (id) obtenerPaciente(id).then(setPaciente);
@@ -33,13 +41,19 @@ export function PacienteDetailPage() {
   if (!paciente || !id) return <p className="text-sm text-slate-500">Cargando...</p>;
 
   const tabs: { key: Tab; label: string }[] = [
+    ...(puedeVerHistoria ? [{ key: "clinico" as Tab, label: "Historia clínica" }] : []),
     { key: "datos", label: "Datos generales" },
-    ...(puedeVerClinico ? [{ key: "clinico" as Tab, label: "Historia clínica" }] : []),
-    ...(puedeVerClinico ? [{ key: "estudios" as Tab, label: "Imágenes y estudios" }] : []),
-    ...(puedeVerClinico ? [{ key: "documentos" as Tab, label: "Documentos" }] : []),
-    { key: "seguros", label: "Seguros" },
-    { key: "facturacion", label: "Facturación" },
+    ...(esMedico ? [{ key: "estudios" as Tab, label: "Imágenes y estudios" }] : []),
+    ...(esMedico ? [{ key: "documentos" as Tab, label: "Documentos" }] : []),
+    ...(puedeGestionar
+      ? [
+          { key: "seguros" as Tab, label: "Seguros" },
+          { key: "facturacion" as Tab, label: "Facturación" },
+        ]
+      : []),
   ];
+  const edad = differenceInYears(new Date(), new Date(paciente.fechaNacimiento));
+  const whatsapp = enlaceWhatsApp(paciente.telefono);
 
   return (
     <div className="flex flex-col gap-4">
@@ -51,22 +65,39 @@ export function PacienteDetailPage() {
           <h1 className="mt-1 text-xl font-semibold text-slate-900">
             {paciente.apellidos}, {paciente.nombres}
           </h1>
-          <p className="text-sm text-slate-500">
-            {paciente.documento} · {format(new Date(paciente.fechaNacimiento), "dd/MM/yyyy")}
+          <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
+            <span>C.I. {paciente.documento}</span>
+            <span>·</span>
+            <span>
+              {edad} años ({format(new Date(paciente.fechaNacimiento), "dd/MM/yyyy")})
+            </span>
+            <span>·</span>
+            <span>{SEXO_LABEL[paciente.sexo]}</span>
+            <span>·</span>
+            <a href={`tel:${paciente.telefono}`} className="hover:underline">
+              {paciente.telefono}
+            </a>
+            {whatsapp && (
+              <a href={whatsapp} target="_blank" rel="noreferrer" className="text-lily-green-700 hover:underline">
+                WhatsApp
+              </a>
+            )}
           </p>
         </div>
-        <Button variant="secondary" onClick={() => setEditOpen(true)}>
-          Editar datos
-        </Button>
+        {puedeGestionar && (
+          <Button variant="secondary" onClick={() => setEditOpen(true)}>
+            Editar datos
+          </Button>
+        )}
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={clsx(
-              "border-b-2 px-4 py-2 text-sm font-medium",
+              "shrink-0 border-b-2 px-4 py-2 text-sm font-medium",
               tab === t.key
                 ? "border-lily-blue-600 text-lily-blue-700"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -105,20 +136,20 @@ export function PacienteDetailPage() {
         </Card>
       )}
 
-      {tab === "clinico" && puedeVerClinico && <HistoriaClinicaPanel pacienteId={id} />}
+      {tab === "clinico" && puedeVerHistoria && <HistoriaClinicaPanel pacienteId={id} puedeEditar={esMedico} />}
 
-      {tab === "estudios" && puedeVerClinico && <AdjuntosPanel pacienteId={id} />}
+      {tab === "estudios" && esMedico && <AdjuntosPanel pacienteId={id} />}
 
-      {tab === "documentos" && puedeVerClinico && <DocumentosPanel pacienteId={id} />}
+      {tab === "documentos" && esMedico && <DocumentosPanel pacienteId={id} />}
 
-      {tab === "seguros" && (
+      {tab === "seguros" && puedeGestionar && (
         <div className="flex flex-col gap-6">
           <PacienteAseguradorasPanel pacienteId={id} />
           <AutorizacionesPanel pacienteId={id} />
         </div>
       )}
 
-      {tab === "facturacion" && <EstadoCuentaPanel pacienteId={id} />}
+      {tab === "facturacion" && puedeGestionar && <EstadoCuentaPanel pacienteId={id} />}
 
       <PacienteFormModal
         open={editOpen}

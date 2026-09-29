@@ -1,9 +1,14 @@
 import { api } from "./api";
 import { Cita, BloqueoHorario, EstadoCita } from "../types";
 
-export async function listarCitas(desde: Date, hasta: Date, profesionalId?: string): Promise<Cita[]> {
+export async function listarCitas(
+  desde: Date,
+  hasta: Date,
+  profesionalId?: string,
+  pacienteId?: string
+): Promise<Cita[]> {
   const { data } = await api.get<Cita[]>("/citas", {
-    params: { desde: desde.toISOString(), hasta: hasta.toISOString(), profesionalId },
+    params: { desde: desde.toISOString(), hasta: hasta.toISOString(), profesionalId, pacienteId },
   });
   return data;
 }

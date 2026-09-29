@@ -100,6 +100,38 @@ const ESCALA_LABEL: Record<string, string> = {
   PERSONALIZADA: "Escala personalizada",
 };
 
+const DOMINANCIA_LABEL: Record<string, string> = {
+  DIESTRO: "Diestro",
+  ZURDO: "Zurdo",
+  AMBIDIESTRO: "Ambidiestro",
+};
+
+const LADO_LABEL: Record<string, string> = { D: "der.", I: "izq." };
+
+// Líneas de detalle de una evaluación estructurada (ver escalas.ts del
+// frontend): interpretación del puntaje y mediciones por articulación/músculo.
+export function detalleEvaluacion(datos: unknown): string[] {
+  if (!datos || typeof datos !== "object") return [];
+  const d = datos as {
+    interpretacion?: unknown;
+    mediciones?: unknown;
+  };
+  const lineas: string[] = [];
+  if (typeof d.interpretacion === "string" && d.interpretacion) lineas.push(d.interpretacion);
+  if (Array.isArray(d.mediciones)) {
+    for (const m of d.mediciones as Record<string, unknown>[]) {
+      const lado = typeof m.lado === "string" ? ` ${LADO_LABEL[m.lado] ?? m.lado}` : "";
+      if (m.grados !== undefined && m.grados !== null) {
+        const normal = m.normal ? ` (normal ${m.normal}°)` : "";
+        lineas.push(`• ${m.articulacion} – ${m.movimiento}${lado}: ${m.grados}°${normal}`);
+      } else if (m.grado !== undefined && m.grado !== null) {
+        lineas.push(`• ${m.grupo}${lado}: ${m.grado}/5`);
+      }
+    }
+  }
+  return lineas;
+}
+
 function calcularEdad(fechaNacimiento: Date) {
   const diff = Date.now() - fechaNacimiento.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
@@ -172,6 +204,18 @@ export async function generarHistoriaClinicaPdf(
   campo(doc, "Antecedentes médicos", historia.antecedentesMedicos);
   campo(doc, "Antecedentes quirúrgicos", historia.antecedentesQuirurgicos);
   campo(doc, "Antecedentes familiares", historia.antecedentesFamiliares);
+  campo(doc, "Alergias", historia.alergias);
+  campo(doc, "Ocupación", historia.ocupacion);
+  campo(doc, "Dominancia", historia.dominancia ? DOMINANCIA_LABEL[historia.dominancia] ?? historia.dominancia : null);
+  campo(doc, "Actividad física", historia.actividadFisica);
+  campo(doc, "Contraindicaciones para agentes físicos", historia.contraindicaciones);
+
+  if (historia.examenFisico || historia.objetivosRehabilitacion || historia.planTerapeutico) {
+    seccion(doc, "Examen físico y plan de rehabilitación");
+    campo(doc, "Examen físico", historia.examenFisico);
+    campo(doc, "Objetivos de rehabilitación", historia.objetivosRehabilitacion);
+    campo(doc, "Plan terapéutico", historia.planTerapeutico);
+  }
 
   if (historia.evaluaciones.length > 0) {
     seccion(doc, "Evaluaciones fisiátricas");
@@ -186,6 +230,9 @@ export async function generarHistoriaClinicaPdf(
             (ev.puntajeTotal !== null ? `: ${ev.puntajeTotal}` : ""),
           { continued: false }
         );
+      for (const linea of detalleEvaluacion(ev.datos)) {
+        doc.font("Body").fillColor(GRIS).fontSize(8.5).text(linea);
+      }
       if (ev.observaciones) {
         doc.font("Body").fillColor(GRIS).fontSize(9).text(ev.observaciones);
       }
@@ -223,6 +270,17 @@ export async function generarHistoriaClinicaPdf(
         .text(
           `${s.fecha.toLocaleDateString("es-VE")} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}`
         );
+      const eva =
+        s.evaPre !== null || s.evaPost !== null
+          ? `EVA: ${s.evaPre ?? "—"} → ${s.evaPost ?? "—"}`
+          : null;
+      if (eva || s.modalidades.length > 0) {
+        doc
+          .font("Body")
+          .fillColor(SAGE)
+          .fontSize(8.5)
+          .text([eva, s.modalidades.join(", ")].filter(Boolean).join(" · "));
+      }
       doc.font("Body").fillColor(GRIS).fontSize(9).text(s.notaEvolucion, { align: "justify" });
       if (s.tratamientoAplicado) {
         doc

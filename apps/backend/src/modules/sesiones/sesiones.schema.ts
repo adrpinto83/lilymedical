@@ -6,6 +6,9 @@ export const crearSesionSchema = z.object({
   notaEvolucion: z.string().min(1),
   tratamientoAplicado: z.string().optional(),
   asistencia: z.enum(["ASISTIO", "INASISTIO", "CANCELO"]).default("ASISTIO"),
+  evaPre: z.number().int().min(0).max(10).nullable().optional(),
+  evaPost: z.number().int().min(0).max(10).nullable().optional(),
+  modalidades: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
   fecha: z.coerce.date().optional(),
 });
 

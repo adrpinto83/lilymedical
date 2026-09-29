@@ -82,6 +82,8 @@ export interface Paciente {
   contactoEmergenciaTelefono?: string | null;
   activo: boolean;
   createdAt: string;
+  /** Solo en el listado: próxima cita pendiente (0 o 1). */
+  citas?: { id: string; fechaHoraInicio: string; numeroSesionEnGrupo?: number | null; totalSesionesGrupo?: number | null }[];
 }
 
 export interface EvaluacionFisiatrica {
@@ -104,6 +106,9 @@ export interface Sesion {
   notaEvolucion: string;
   tratamientoAplicado?: string | null;
   asistencia: "ASISTIO" | "INASISTIO" | "CANCELO";
+  evaPre?: number | null;
+  evaPost?: number | null;
+  modalidades?: string[];
   terapeuta?: { nombre: string; apellido: string };
 }
 
@@ -127,6 +132,13 @@ export interface HistoriaClinica {
   antecedentesQuirurgicos?: string | null;
   antecedentesFamiliares?: string | null;
   alergias?: string | null;
+  ocupacion?: string | null;
+  dominancia?: "DIESTRO" | "ZURDO" | "AMBIDIESTRO" | null;
+  actividadFisica?: string | null;
+  contraindicaciones?: string | null;
+  examenFisico?: string | null;
+  objetivosRehabilitacion?: string | null;
+  planTerapeutico?: string | null;
   evaluaciones: EvaluacionFisiatrica[];
   sesiones: Sesion[];
   adjuntos: Adjunto[];

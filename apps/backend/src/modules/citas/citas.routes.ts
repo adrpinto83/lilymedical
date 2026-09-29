@@ -21,14 +21,15 @@ const soloGestion = roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO");
 
 
 router.get("/", async (req, res) => {
-  const { desde, hasta, profesionalId } = req.query;
+  const { desde, hasta, profesionalId, pacienteId } = req.query;
   if (!desde || !hasta) {
     throw new HttpError(400, "Se requieren los parámetros 'desde' y 'hasta'");
   }
   const citas = await citasService.listarCitas(
     new Date(String(desde)),
     new Date(String(hasta)),
-    profesionalId ? String(profesionalId) : undefined
+    profesionalId ? String(profesionalId) : undefined,
+    pacienteId ? String(pacienteId) : undefined
   );
   res.json(citas);
 });

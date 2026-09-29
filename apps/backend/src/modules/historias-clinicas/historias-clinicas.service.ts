@@ -57,7 +57,11 @@ export async function obtenerHistoriaParaPdf(
 export async function actualizarHistoria(pacienteId: string, data: ActualizarHistoriaInput) {
   const historia = await prisma.historiaClinica.findUnique({ where: { pacienteId } });
   if (!historia) throw new HttpError(404, "Historia clínica no encontrada");
-  return prisma.historiaClinica.update({ where: { pacienteId }, data });
+  const { dominancia, ...resto } = data;
+  return prisma.historiaClinica.update({
+    where: { pacienteId },
+    data: { ...resto, ...(dominancia !== undefined ? { dominancia: dominancia || null } : {}) },
+  });
 }
 
 export async function agregarEvaluacion(

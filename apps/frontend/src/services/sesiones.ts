@@ -7,6 +7,9 @@ export async function crearSesion(payload: {
   notaEvolucion: string;
   tratamientoAplicado?: string;
   asistencia?: "ASISTIO" | "INASISTIO" | "CANCELO";
+  evaPre?: number | null;
+  evaPost?: number | null;
+  modalidades?: string[];
 }): Promise<Sesion> {
   const { data } = await api.post<Sesion>("/sesiones", payload);
   return data;

@@ -7,9 +7,13 @@ import { Paciente } from "../../types";
 import { listarPacientes } from "../../services/pacientes";
 import { getErrorMessage } from "../../services/api";
 import { PacienteFormModal } from "./PacienteFormModal";
+import { useAuth } from "../../context/AuthContext";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export function PacientesListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
@@ -51,7 +55,7 @@ export function PacientesListPage() {
           <h1 className="text-xl font-semibold text-slate-900">Pacientes</h1>
           <p className="text-sm text-slate-500">Busca por nombre, documento o teléfono</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>+ Nuevo paciente</Button>
+        {user?.rol !== "FISIATRA_AYUDANTE" && <Button onClick={() => setModalOpen(true)}>+ Nuevo paciente</Button>}
       </div>
 
       <Card>
@@ -78,6 +82,7 @@ export function PacientesListPage() {
                   <th className="px-4 py-3">Edad</th>
                   <th className="px-4 py-3">Teléfono</th>
                   <th className="px-4 py-3">Aseguradora</th>
+                  <th className="px-4 py-3">Próxima cita</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -97,6 +102,22 @@ export function PacientesListPage() {
                       {p.aseguradoras?.find((a) => a.esPrimaria)?.aseguradora?.nombre ??
                         p.aseguradoras?.[0]?.aseguradora?.nombre ??
                         "Particular"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {p.citas?.[0] ? (
+                        <>
+                          <span className="capitalize">
+                            {format(new Date(p.citas[0].fechaHoraInicio), "EEE d MMM, HH:mm", { locale: es })}
+                          </span>
+                          {p.citas[0].totalSesionesGrupo && (
+                            <span className="ml-1 text-xs text-slate-400">
+                              ({p.citas[0].numeroSesionEnGrupo}/{p.citas[0].totalSesionesGrupo})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

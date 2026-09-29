@@ -262,6 +262,16 @@ model HistoriaClinica {
   antecedentesQuirurgicos String?
   antecedentesFamiliares  String?
   alergias                String? // medicamentosas, alimentarias, etc. — se muestra como alerta en recetas
+  // Anamnesis y plan propios de fisiatría
+  ocupacion               String? // oficio/puesto: orienta la ergonomía y el retorno laboral
+  dominancia              String? // DIESTRO | ZURDO | AMBIDIESTRO
+  actividadFisica         String? // deporte o nivel de actividad habitual
+  // Contraindicaciones para agentes físicos (marcapasos, implantes metálicos,
+  // embarazo, neoplasia...). Se muestran como alerta a quien aplica la terapia.
+  contraindicaciones      String?
+  examenFisico            String? // inspección, postura, marcha, palpación, pruebas especiales
+  objetivosRehabilitacion String?
+  planTerapeutico         String? // modalidades, frecuencia y número de sesiones indicadas
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -308,6 +318,11 @@ model Sesion {
   notaEvolucion       String
   tratamientoAplicado String?
   asistencia          EstadoAsistencia @default(ASISTIO)
+  // Dolor (EVA 0-10) al llegar y al terminar la sesión, y agentes físicos /
+  // técnicas aplicadas: permiten seguir la respuesta al tratamiento.
+  evaPre              Int?
+  evaPost             Int?
+  modalidades         String[]         @default([])
   createdAt           DateTime         @default(now())
 
   historiaClinica HistoriaClinica  @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)

@@ -34,6 +34,9 @@ export async function crearSesion(terapeutaId: string, data: CrearSesionInput) {
         notaEvolucion: data.notaEvolucion,
         tratamientoAplicado: data.tratamientoAplicado,
         asistencia: data.asistencia,
+        evaPre: data.evaPre,
+        evaPost: data.evaPost,
+        modalidades: data.modalidades ?? [],
         fecha: data.fecha ?? new Date(),
       },
     });

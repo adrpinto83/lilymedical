@@ -59,12 +59,13 @@ async function verificarDisponibilidad(
   }
 }
 
-export async function listarCitas(desde: Date, hasta: Date, profesionalId?: string) {
+export async function listarCitas(desde: Date, hasta: Date, profesionalId?: string, pacienteId?: string) {
   return prisma.cita.findMany({
     where: {
       fechaHoraInicio: { gte: desde },
       fechaHoraFin: { lte: hasta },
       profesionalId,
+      pacienteId,
     },
     orderBy: { fechaHoraInicio: "asc" },
     include: citaInclude,

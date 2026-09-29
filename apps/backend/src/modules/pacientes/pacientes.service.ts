@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import {
@@ -10,12 +11,25 @@ const includeAseguradoras = {
   aseguradoras: { include: { aseguradora: true }, where: { activo: true } },
 } as const;
 
+// Para la lista: la próxima cita pendiente de cada paciente (dato de agenda,
+// no clínico), con su lugar en el paquete de sesiones si lo tiene.
+const includeLista = () =>
+  ({
+    ...includeAseguradoras,
+    citas: {
+      where: { estado: { in: ["PROGRAMADA", "CONFIRMADA"] }, fechaHoraInicio: { gte: new Date() } },
+      orderBy: { fechaHoraInicio: "asc" },
+      take: 1,
+      select: { id: true, fechaHoraInicio: true, numeroSesionEnGrupo: true, totalSesionesGrupo: true },
+    },
+  }) satisfies Prisma.PacienteInclude;
+
 export async function listarPacientes(busqueda?: string) {
   if (!busqueda) {
     return prisma.paciente.findMany({
       where: { activo: true },
       orderBy: { apellidos: "asc" },
-      include: includeAseguradoras,
+      include: includeLista(),
     });
   }
 
@@ -30,7 +44,7 @@ export async function listarPacientes(busqueda?: string) {
       ],
     },
     orderBy: { apellidos: "asc" },
-    include: includeAseguradoras,
+    include: includeLista(),
   });
 }
 
