@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { to: "/pacientes", label: "Pacientes", icon: "🧑‍🤝‍🧑", roles: TODO_EL_PERSONAL },
   { to: "/agenda", label: "Agenda", icon: "🗓️", roles: TODO_EL_PERSONAL },
   { to: "/facturacion", label: "Facturación", icon: "🧾", roles: GESTION },
+  { to: "/servicios", label: "Servicios", icon: "💆", roles: GESTION },
   { to: "/reportes", label: "Reportes", icon: "📈", roles: GESTION },
   { to: "/inventario", label: "Inventario", icon: "🛠️", roles: GESTION },
   { to: "/galeria", label: "Galería web", icon: "🖼️", roles: GESTION },

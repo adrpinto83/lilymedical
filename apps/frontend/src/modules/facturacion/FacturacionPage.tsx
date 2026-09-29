@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { endOfDay, endOfMonth, format, startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
 import clsx from "clsx";
+import { Link } from "react-router-dom";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Input, Select } from "../../components/ui/Input";
@@ -10,7 +11,6 @@ import { listarFacturas } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
 import { FacturaFormModal } from "./FacturaFormModal";
 import { FacturaDetalleModal } from "./FacturaDetalleModal";
-import { TarifasPanel } from "./TarifasPanel";
 import { AseguradorasPanel } from "./AseguradorasPanel";
 import { ESTADO_FACTURA, usd } from "./facturacionUtils";
 
@@ -41,7 +41,7 @@ function rango(periodo: Periodo): { desde?: string; hasta?: string } {
   }
 }
 
-type Seccion = "facturas" | "tarifas" | "aseguradoras";
+type Seccion = "facturas" | "aseguradoras";
 
 export function FacturacionPage() {
   const [seccion, setSeccion] = useState<Seccion>("facturas");
@@ -88,7 +88,13 @@ export function FacturacionPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Facturación</h1>
-          <p className="text-sm text-slate-500">Montos en dólares; los pagos en bolívares guardan su tasa.</p>
+          <p className="text-sm text-slate-500">
+            Montos en dólares; los pagos en bolívares guardan su tasa. Precios en{" "}
+            <Link to="/servicios" className="text-lily-blue-700 hover:underline">
+              Servicios
+            </Link>
+            .
+          </p>
         </div>
         <Button onClick={() => setModalOpen(true)}>+ Nueva factura</Button>
       </div>
@@ -97,7 +103,6 @@ export function FacturacionPage() {
         {(
           [
             ["facturas", "Facturas"],
-            ["tarifas", "Tarifas"],
             ["aseguradoras", "Aseguradoras"],
           ] as const
         ).map(([valor, etiqueta]) => (
@@ -116,7 +121,6 @@ export function FacturacionPage() {
         ))}
       </div>
 
-      {seccion === "tarifas" && <TarifasPanel />}
       {seccion === "aseguradoras" && <AseguradorasPanel />}
 
       {seccion === "facturas" && (

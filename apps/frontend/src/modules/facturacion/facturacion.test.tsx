@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { FacturaFormModal } from "./FacturaFormModal";
 import { FacturaDetalleModal } from "./FacturaDetalleModal";
 import { calcularSplit } from "./facturacionUtils";
@@ -49,7 +50,11 @@ describe("calcularSplit", () => {
 
 describe("FacturaFormModal", () => {
   it("factura las sesiones pendientes al seguro primario mostrando el reparto", async () => {
-    render(<FacturaFormModal open pacienteIdFijo="p1" onClose={() => {}} onCreated={() => {}} />);
+    render(
+      <MemoryRouter>
+        <FacturaFormModal open pacienteIdFijo="p1" onClose={() => {}} onCreated={() => {}} />
+      </MemoryRouter>
+    );
     fireEvent.click(await screen.findByText("Agregar todas"));
     // 2 sesiones × $30 = $60; HCM cubre 80%
     expect(await screen.findByText("Cubre HCM Seguros")).toBeTruthy();

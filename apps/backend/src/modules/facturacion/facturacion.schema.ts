@@ -1,10 +1,15 @@
 import { z } from "zod";
 
 export const tarifaSchema = z.object({
-  nombreServicio: z.string().min(1),
-  descripcion: z.string().optional(),
+  nombreServicio: z.string().trim().min(1),
+  descripcion: z.string().trim().optional(),
   precio: z.number().positive(),
   aseguradoraId: z.string().uuid().optional(),
+});
+
+export const actualizarTarifaSchema = tarifaSchema.partial().extend({
+  descripcion: z.string().trim().nullable().optional(),
+  activo: z.boolean().optional(),
 });
 
 export const facturaDetalleSchema = z.object({

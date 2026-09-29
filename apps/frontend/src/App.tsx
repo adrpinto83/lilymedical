@@ -12,6 +12,7 @@ import { AgendaPage } from "./modules/agenda/AgendaPage";
 import { FacturacionPage } from "./modules/facturacion/FacturacionPage";
 import { PerfilMedicoPage } from "./modules/perfil-medico/PerfilMedicoPage";
 import { InventarioPage } from "./modules/inventario/InventarioPage";
+import { ServiciosPage } from "./modules/servicios/ServiciosPage";
 import { GaleriaPage } from "./modules/galeria/GaleriaPage";
 import { AvisoPortadaPage } from "./modules/aviso-portada/AvisoPortadaPage";
 import { PersonalPage } from "./modules/personal/PersonalPage";
@@ -59,6 +60,7 @@ export default function App() {
                 <Route element={<ProtectedRoute allowedRoles={["ADMIN", "MEDICO", "ADMINISTRATIVO"]} />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/facturacion" element={<FacturacionPage />} />
+                  <Route path="/servicios" element={<ServiciosPage />} />
                   <Route path="/reportes" element={<ReportesPage />} />
                   <Route path="/inventario" element={<InventarioPage />} />
                   <Route path="/galeria" element={<GaleriaPage />} />

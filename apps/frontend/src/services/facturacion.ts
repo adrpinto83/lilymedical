@@ -1,8 +1,10 @@
 import { api } from "./api";
 import { Factura, Tarifa, Pago } from "../types";
 
-export async function listarTarifas(): Promise<Tarifa[]> {
-  const { data } = await api.get<Tarifa[]>("/facturacion/tarifas");
+export async function listarTarifas(incluirInactivas = false): Promise<Tarifa[]> {
+  const { data } = await api.get<Tarifa[]>("/facturacion/tarifas", {
+    params: incluirInactivas ? { incluirInactivas: "true" } : undefined,
+  });
   return data;
 }
 
@@ -18,7 +20,7 @@ export async function crearTarifa(payload: {
 
 export async function actualizarTarifa(
   id: string,
-  payload: { nombreServicio?: string; precio?: number }
+  payload: { nombreServicio?: string; precio?: number; descripcion?: string | null; activo?: boolean }
 ): Promise<Tarifa> {
   const { data } = await api.put<Tarifa>(`/facturacion/tarifas/${id}`, payload);
   return data;

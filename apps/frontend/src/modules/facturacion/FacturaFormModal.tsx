@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { es } from "date-fns/locale";
 import { Modal } from "../../components/ui/Modal";
 import { Input, Select, Textarea } from "../../components/ui/Input";
@@ -339,14 +340,18 @@ export function FacturaFormModal({
               </div>
             );
           })}
-          <Button
-            type="button"
-            variant="ghost"
-            className="self-start"
-            onClick={() => setDetalles((prev) => [...prev, lineaVacia()])}
-          >
-            + Agregar servicio
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDetalles((prev) => [...prev, lineaVacia()])}
+            >
+              + Agregar línea
+            </Button>
+            <Link to="/servicios" className="text-xs text-slate-500 hover:underline" onClick={onClose}>
+              ¿Falta un servicio o cambió un precio? Gestiónalo en Servicios
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

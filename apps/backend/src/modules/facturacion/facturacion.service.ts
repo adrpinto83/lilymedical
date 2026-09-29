@@ -13,15 +13,20 @@ const CERO = new Prisma.Decimal(0);
 
 // ---------- Tarifas ----------
 
-export async function listarTarifas() {
-  return prisma.tarifa.findMany({ where: { activo: true }, orderBy: { nombreServicio: "asc" } });
+// Para facturar y agendar solo las activas; la pantalla de servicios pide
+// también las desactivadas para poder reactivarlas.
+export async function listarTarifas(incluirInactivas = false) {
+  return prisma.tarifa.findMany({
+    where: incluirInactivas ? undefined : { activo: true },
+    orderBy: [{ activo: "desc" }, { nombreServicio: "asc" }],
+  });
 }
 
 export async function crearTarifa(data: TarifaInput) {
   return prisma.tarifa.create({ data });
 }
 
-export async function actualizarTarifa(id: string, data: Partial<TarifaInput>) {
+export async function actualizarTarifa(id: string, data: Partial<TarifaInput> & { activo?: boolean }) {
   return prisma.tarifa.update({ where: { id }, data });
 }
 

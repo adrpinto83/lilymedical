@@ -8,6 +8,7 @@ import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
 import {
   tarifaSchema,
+  actualizarTarifaSchema,
   crearFacturaSchema,
   registrarPagoSchema,
   anularPagoSchema,
@@ -21,13 +22,13 @@ const router = Router();
 router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO"));
 
 // Tarifas
-router.get("/tarifas", async (_req, res) => {
-  res.json(await facturacionService.listarTarifas());
+router.get("/tarifas", async (req, res) => {
+  res.json(await facturacionService.listarTarifas(req.query.incluirInactivas === "true"));
 });
 router.post("/tarifas", validateBody(tarifaSchema), async (req, res) => {
   res.status(201).json(await facturacionService.crearTarifa(req.body));
 });
-router.put("/tarifas/:id", validateBody(tarifaSchema.partial()), async (req, res) => {
+router.put("/tarifas/:id", validateBody(actualizarTarifaSchema), async (req, res) => {
   res.json(await facturacionService.actualizarTarifa(req.params.id, req.body));
 });
 router.delete("/tarifas/:id", async (req, res) => {
