@@ -1,7 +1,6 @@
 import { prisma } from "../../lib/prisma";
-import { enviarEmail, correoConfigurado } from "../../lib/mailer";
-import { construirMembrete } from "../perfil-medico/perfil-medico.service";
-import { Membrete } from "../../lib/pdf";
+import { correoConfigurado } from "../../lib/mailer";
+import { datosConsultorio, enviarRecordatorioCita, includeCita } from "../correos/correos.service";
 
 export interface ResultadoRecordatorios {
   configurado: boolean;
@@ -14,39 +13,6 @@ export interface ResultadoRecordatorios {
 function horasAntes(): number {
   const valor = Number(process.env.RECORDATORIO_HORAS_ANTES);
   return Number.isFinite(valor) && valor > 0 ? valor : 24;
-}
-
-function plantillaRecordatorio(
-  paciente: { nombres: string; apellidos: string },
-  fechaHoraInicio: Date,
-  membrete: Membrete
-): { subject: string; html: string } {
-  const fecha = fechaHoraInicio.toLocaleDateString("es-VE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  const hora = fechaHoraInicio.toLocaleTimeString("es-VE", { hour: "numeric", minute: "2-digit" });
-  const medico = `Dra. ${membrete.medicoNombre} ${membrete.medicoApellido}`;
-
-  return {
-    subject: `Recordatorio de tu cita — ${fecha}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; color: #15304a; max-width: 480px;">
-        <p>Hola ${paciente.nombres},</p>
-        <p>Te recordamos tu cita con <strong>${medico}</strong>:</p>
-        <p style="font-size: 16px; margin: 16px 0;">
-          📅 <strong>${fecha}</strong><br />
-          🕐 <strong>${hora}</strong>
-        </p>
-        ${membrete.direccionConsultorio ? `<p>📍 ${membrete.direccionConsultorio}</p>` : ""}
-        ${membrete.telefonoConsultorio ? `<p>📞 ${membrete.telefonoConsultorio}</p>` : ""}
-        <p style="color: #4c6478; font-size: 13px; margin-top: 24px;">
-          Si necesitas reprogramar o cancelar, por favor contáctanos con anticipación.
-        </p>
-      </div>
-    `,
-  };
 }
 
 // Busca citas próximas (dentro de la ventana configurada) sin recordatorio
@@ -71,26 +37,21 @@ export async function enviarRecordatoriosPendientes(): Promise<ResultadoRecordat
       recordatorioEnviado: false,
       fechaHoraInicio: { gte: ahora, lte: limite },
     },
-    include: { paciente: { select: { nombres: true, apellidos: true, email: true } } },
+    include: includeCita,
   });
   resultado.revisadas = citas.length;
+  if (citas.length === 0) return resultado;
 
-  const membretesPorProfesional = new Map<string, Membrete>();
+  const consultorio = await datosConsultorio();
 
   for (const cita of citas) {
-    if (!cita.paciente.email) {
+    const email = cita.paciente.email;
+    if (!email) {
       resultado.sinEmail++;
       continue;
     }
 
-    let membrete = membretesPorProfesional.get(cita.profesionalId);
-    if (!membrete) {
-      membrete = await construirMembrete(cita.profesionalId);
-      membretesPorProfesional.set(cita.profesionalId, membrete);
-    }
-
-    const { subject, html } = plantillaRecordatorio(cita.paciente, cita.fechaHoraInicio, membrete);
-    const enviado = await enviarEmail({ to: cita.paciente.email, subject, html });
+    const enviado = await enviarRecordatorioCita({ ...cita, paciente: { ...cita.paciente, email } }, consultorio);
 
     if (enviado) {
       await prisma.cita.update({ where: { id: cita.id }, data: { recordatorioEnviado: true } });

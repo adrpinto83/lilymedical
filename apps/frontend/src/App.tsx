@@ -4,6 +4,8 @@ import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
 import { LandingPage } from "./modules/landing/LandingPage";
 import { LoginPage } from "./modules/auth/LoginPage";
+import { OlvidePasswordPage } from "./modules/auth/OlvidePasswordPage";
+import { RestablecerPasswordPage } from "./modules/auth/RestablecerPasswordPage";
 import { DashboardPage } from "./modules/dashboard/DashboardPage";
 import { ReportesPage } from "./modules/dashboard/ReportesPage";
 import { PacientesListPage } from "./modules/pacientes/PacientesListPage";
@@ -31,6 +33,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/olvide-password" element={<OlvidePasswordPage />} />
+          <Route path="/restablecer-password" element={<RestablecerPasswordPage />} />
           <Route path="/registro-paciente" element={<RegistroPacientePage />} />
           <Route path="/verificar/:codigo" element={<VerificacionPage />} />
 

@@ -211,6 +211,9 @@ model Paciente {
   contactoEmergenciaNombre   String?
   contactoEmergenciaTelefono String?
   activo                     Boolean      @default(true)
+  // Año de la última felicitación de cumpleaños enviada por correo: evita
+  // repetirla si el job corre varias veces el mismo día.
+  cumpleanosFelicitadoAnio   Int?
   createdAt                  DateTime     @default(now())
   updatedAt                  DateTime     @updatedAt
 

@@ -17,7 +17,12 @@ import { useAuth } from "../../context/AuthContext";
 import { Cita, BloqueoHorario, EstadoCita } from "../../types";
 import { Profesional, listarProfesionales } from "../../services/usuarios";
 import { listarCitas, listarBloqueos, actualizarCita, eliminarBloqueo } from "../../services/citas";
-import { enviarRecordatoriosAhora } from "../../services/recordatorios";
+import {
+  Cumpleanero,
+  enviarFelicitacionesAhora,
+  enviarRecordatoriosAhora,
+  listarCumpleanerosDeHoy,
+} from "../../services/recordatorios";
 import { getErrorMessage } from "../../services/api";
 import { TimeGridView } from "./TimeGridView";
 import { MonthView } from "./MonthView";
@@ -71,6 +76,8 @@ export function AgendaPage() {
   const [actualizando, setActualizando] = useState<string | null>(null);
   const [enviandoRecordatorios, setEnviandoRecordatorios] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [cumpleaneros, setCumpleaneros] = useState<Cumpleanero[]>([]);
+  const [felicitando, setFelicitando] = useState(false);
 
   useEffect(() => {
     listarProfesionales()
@@ -156,6 +163,41 @@ export function AgendaPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [navegar, hayModalAbierto]);
 
+  useEffect(() => {
+    if (!puedeGestionar) return;
+    listarCumpleanerosDeHoy()
+      .then(setCumpleaneros)
+      .catch(() => setCumpleaneros([]));
+  }, [puedeGestionar]);
+
+  // El job ya felicita solo cada mañana; el botón muestra quién cumple hoy
+  // y envía en el momento las felicitaciones que falten.
+  async function felicitarCumpleaneros() {
+    setFelicitando(true);
+    setMensaje(null);
+    try {
+      const r = await enviarFelicitacionesAhora();
+      setCumpleaneros(r.cumpleaneros);
+      if (r.cumpleaneros.length === 0) {
+        setMensaje("Hoy ningún paciente cumple años.");
+      } else if (!r.configurado) {
+        setMensaje("El envío de correos no está configurado (falta SMTP).");
+      } else {
+        const detalle = r.cumpleaneros
+          .map((c) => `${c.nombre} (${c.felicitado ? "felicitado ✓" : c.email ? "no se pudo enviar" : "sin correo"})`)
+          .join(", ");
+        setMensaje(
+          `🎂 Cumplen años hoy: ${detalle}.` +
+            (r.enviados > 0 ? ` Se enviaron ${r.enviados} felicitación(es) ahora.` : "")
+        );
+      }
+    } catch (err) {
+      setMensaje(getErrorMessage(err));
+    } finally {
+      setFelicitando(false);
+    }
+  }
+
   async function enviarRecordatorios() {
     setEnviandoRecordatorios(true);
     setMensaje(null);
@@ -237,6 +279,14 @@ export function AgendaPage() {
         </div>
         {puedeGestionar && (
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              onClick={felicitarCumpleaneros}
+              disabled={felicitando}
+              title="Felicitaciones de cumpleaños por email (se envían solas cada mañana)"
+            >
+              {felicitando ? "Enviando..." : `🎂 Cumpleaños de hoy${cumpleaneros.length ? ` (${cumpleaneros.length})` : ""}`}
+            </Button>
             <Button variant="ghost" onClick={enviarRecordatorios} disabled={enviandoRecordatorios}>
               {enviandoRecordatorios ? "Enviando..." : "✉️ Recordatorios por email"}
             </Button>

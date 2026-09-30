@@ -31,6 +31,16 @@ export const cambiarPasswordSchema = z.object({
   nueva: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres"),
 });
 
+export const solicitarRestablecimientoSchema = z.object({
+  email: z.string().email(),
+});
+
+export const restablecerPasswordSchema = z.object({
+  token: z.string().min(1),
+  nueva: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres"),
+});
+
+export type RestablecerPasswordInput = z.infer<typeof restablecerPasswordSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CambiarPasswordInput = z.infer<typeof cambiarPasswordSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;

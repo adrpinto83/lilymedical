@@ -81,6 +81,23 @@ export function enviarPdfComoRespuesta(doc: PDFKit.PDFDocument, res: Response, n
   doc.pipe(res);
 }
 
+// Para adjuntar el PDF a un correo en vez de transmitirlo como respuesta HTTP.
+export async function generarPdfEnMemoria(
+  tamano: "CARTA" | "MEDIA_CARTA",
+  escribir: (doc: PDFKit.PDFDocument) => void | Promise<void>
+): Promise<Buffer> {
+  const doc = crearDocumentoPdf(tamano);
+  const partes: Buffer[] = [];
+  const terminado = new Promise<Buffer>((resolve, reject) => {
+    doc.on("data", (parte: Buffer) => partes.push(parte));
+    doc.on("end", () => resolve(Buffer.concat(partes)));
+    doc.on("error", reject);
+  });
+  await escribir(doc);
+  doc.end();
+  return terminado;
+}
+
 export async function generarQrVerificacion(codigo: string): Promise<Buffer> {
   const baseUrl = process.env.PUBLIC_APP_URL || "http://localhost:5173";
   const url = `${baseUrl}/verificar/${codigo}`;

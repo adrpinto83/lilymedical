@@ -8,6 +8,8 @@ import {
   loginSchema,
   registerSchema,
   registroPacienteSchema,
+  restablecerPasswordSchema,
+  solicitarRestablecimientoSchema,
 } from "./auth.schema";
 import * as authService from "./auth.service";
 
@@ -27,6 +29,28 @@ router.post(
   async (req, res) => {
     const result = await authService.registrarPaciente(req.body);
     res.status(201).json(result);
+  }
+);
+
+// "Olvidé mi contraseña": siempre responde 204 para no revelar qué emails
+// tienen cuenta; si existe, le llega el enlace por correo.
+router.post(
+  "/olvide-password",
+  loginRateLimit,
+  validateBody(solicitarRestablecimientoSchema),
+  async (req, res) => {
+    await authService.solicitarRestablecimiento(req.body.email);
+    res.status(204).send();
+  }
+);
+
+router.post(
+  "/restablecer-password",
+  loginRateLimit,
+  validateBody(restablecerPasswordSchema),
+  async (req, res) => {
+    await authService.restablecerPassword(req.body);
+    res.status(204).send();
   }
 );
 

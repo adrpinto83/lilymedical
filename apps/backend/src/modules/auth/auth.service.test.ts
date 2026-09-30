@@ -5,13 +5,15 @@ vi.mock("../../lib/prisma", () => ({
   prisma: {
     usuario: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
     },
   },
 }));
 
 import { prisma } from "../../lib/prisma";
-import { login, cambiarPassword } from "./auth.service";
+import { login, cambiarPassword, solicitarRestablecimiento, restablecerPassword } from "./auth.service";
+import * as correos from "../correos/correos.service";
 import { HttpError } from "../../lib/http-error";
 
 const usuarioBase = {
@@ -141,5 +143,54 @@ describe("auth.service.cambiarPassword", () => {
     await expect(
       cambiarPassword("desconocido", { actual: "x", nueva: "nuevaClave2026" })
     ).rejects.toThrow("Usuario no encontrado");
+  });
+});
+
+describe("auth.service restablecer contraseña", () => {
+  // Captura el enlace que se enviaría por correo en lugar de mandarlo.
+  async function obtenerToken(usuario: typeof usuarioBase): Promise<string> {
+    const enviar = vi.spyOn(correos, "enviarEnlaceRestablecimiento").mockResolvedValue(true);
+    const segundoPlano = vi.spyOn(correos, "enSegundoPlano").mockImplementation((_e, tarea) => {
+      void tarea();
+    });
+    vi.mocked(prisma.usuario.findFirst).mockResolvedValue(usuario as any);
+    await solicitarRestablecimiento(usuario.email);
+    const url = enviar.mock.calls[0][1];
+    enviar.mockRestore();
+    segundoPlano.mockRestore();
+    return decodeURIComponent(new URL(url).searchParams.get("token")!);
+  }
+
+  it("no envía nada si el email no tiene cuenta", async () => {
+    const enviar = vi.spyOn(correos, "enviarEnlaceRestablecimiento");
+    vi.mocked(prisma.usuario.findFirst).mockResolvedValue(null);
+    await solicitarRestablecimiento("nadie@ejemplo.com");
+    expect(enviar).not.toHaveBeenCalled();
+  });
+
+  it("cambia la contraseña con un enlace válido y limpia el bloqueo", async () => {
+    const token = await obtenerToken(usuarioBase);
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue(usuarioBase as any);
+
+    await restablecerPassword({ token, nueva: "nuevaClave123" });
+
+    const data = vi.mocked(prisma.usuario.update).mock.calls[0][0].data as any;
+    expect(await bcrypt.compare("nuevaClave123", data.passwordHash)).toBe(true);
+    expect(data.bloqueadoHasta).toBeNull();
+  });
+
+  it("el enlace deja de servir una vez que la contraseña cambió", async () => {
+    const token = await obtenerToken(usuarioBase);
+    const yaCambiada = { ...usuarioBase, passwordHash: await bcrypt.hash("otra", 10) };
+    vi.mocked(prisma.usuario.findUnique).mockResolvedValue(yaCambiada as any);
+
+    await expect(restablecerPassword({ token, nueva: "nuevaClave123" })).rejects.toThrow(HttpError);
+    expect(prisma.usuario.update).not.toHaveBeenCalled();
+  });
+
+  it("rechaza tokens inventados", async () => {
+    await expect(restablecerPassword({ token: "no-es-un-token", nueva: "nuevaClave123" })).rejects.toThrow(
+      "El enlace no es válido"
+    );
   });
 });

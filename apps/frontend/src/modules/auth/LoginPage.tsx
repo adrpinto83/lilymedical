@@ -60,6 +60,9 @@ export function LoginPage() {
           <Button type="submit" disabled={loading} className="mt-2 w-full">
             {loading ? "Ingresando..." : "Ingresar"}
           </Button>
+          <Link to="/olvide-password" className="text-center text-sm text-lily-blue-600 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </form>
         <p className="mt-4 text-center text-sm text-slate-500">
           ¿Eres paciente y no tienes cuenta?{" "}

@@ -7,6 +7,7 @@ import { listarRecetasPorPaciente, abrirPdfReceta } from "../../services/recetas
 import { listarConstanciasPorPaciente, abrirPdfConstancia } from "../../services/constancias";
 import { listarPlanesPorPaciente, abrirPdfPlanEjercicios } from "../../services/planesEjercicios";
 import { getErrorMessage } from "../../services/api";
+import { enviarDocumentoPorCorreo, TipoDocumentoCorreo } from "../../services/correos";
 import { RecetaFormModal } from "./RecetaFormModal";
 import { ConstanciaFormModal } from "./ConstanciaFormModal";
 import { PlanEjerciciosFormModal } from "./PlanEjerciciosFormModal";
@@ -22,6 +23,31 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   const [constanciaModalOpen, setConstanciaModalOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [exportarModalOpen, setExportarModalOpen] = useState(false);
+  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  async function enviarPorCorreo(tipo: TipoDocumentoCorreo, id: string, nombre: string) {
+    if (!confirm(`¿Enviar ${nombre} en PDF al correo del paciente?`)) return;
+    setError(null);
+    setAviso(null);
+    setEnviandoId(id);
+    try {
+      const email = await enviarDocumentoPorCorreo(tipo, id);
+      setAviso(`Se envió ${nombre} a ${email}.`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setEnviandoId(null);
+    }
+  }
+
+  function botonCorreo(tipo: TipoDocumentoCorreo, id: string, nombre: string) {
+    return (
+      <Button variant="ghost" disabled={enviandoId === id} onClick={() => enviarPorCorreo(tipo, id, nombre)}>
+        {enviandoId === id ? "Enviando..." : "✉️ Enviar por correo"}
+      </Button>
+    );
+  }
 
   const cargar = useCallback(async () => {
     try {
@@ -60,6 +86,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {aviso && <p className="text-sm text-green-700">{aviso}</p>}
 
       <Card>
         <CardHeader>
@@ -85,9 +112,12 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                       {r.fechaVencimiento ? ` · válida hasta ${format(new Date(r.fechaVencimiento), "dd/MM/yyyy")}` : ""}
                     </p>
                   </div>
-                  <Button variant="ghost" onClick={() => abrirPdfReceta(r.id)}>
-                    Ver PDF
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    {botonCorreo("recetas", r.id, `la receta ${r.numeroReceta}`)}
+                    <Button variant="ghost" onClick={() => abrirPdfReceta(r.id)}>
+                      Ver PDF
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -113,9 +143,12 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                       {c.diasReposo ? ` · ${c.diasReposo} día(s) de reposo` : ""}
                     </p>
                   </div>
-                  <Button variant="ghost" onClick={() => abrirPdfConstancia(c.id)}>
-                    Ver PDF
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    {botonCorreo("constancias", c.id, `la constancia ${c.numeroConstancia}`)}
+                    <Button variant="ghost" onClick={() => abrirPdfConstancia(c.id)}>
+                      Ver PDF
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -140,9 +173,12 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                     </p>
                     {p.notas && <p className="text-slate-500">{p.notas}</p>}
                   </div>
-                  <Button variant="ghost" onClick={() => abrirPdfPlanEjercicios(p.id)}>
-                    Ver PDF
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    {botonCorreo("planes-ejercicios", p.id, "la guía de ejercicios")}
+                    <Button variant="ghost" onClick={() => abrirPdfPlanEjercicios(p.id)}>
+                      Ver PDF
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

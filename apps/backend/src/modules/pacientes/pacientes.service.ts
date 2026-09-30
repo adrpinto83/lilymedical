@@ -6,6 +6,7 @@ import {
   ActualizarPacienteInput,
   PacienteAseguradoraInput,
 } from "./pacientes.schema";
+import * as correos from "../correos/correos.service";
 
 const includeAseguradoras = {
   aseguradoras: { include: { aseguradora: true }, where: { activo: true } },
@@ -66,6 +67,7 @@ export async function crearPaciente(data: CrearPacienteInput) {
   });
   // Cada paciente arranca con su historia clínica vacía lista para llenarse
   await prisma.historiaClinica.create({ data: { pacienteId: paciente.id } });
+  correos.enSegundoPlano("bienvenida paciente", () => correos.notificarBienvenidaPaciente(paciente.id));
   return paciente;
 }
 

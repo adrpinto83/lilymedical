@@ -7,6 +7,7 @@ import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import * as authService from "../auth/auth.service";
 import { eliminarUsuario } from "./usuarios.service";
+import * as correos from "../correos/correos.service";
 import {
   actualizarUsuarioSchema,
   crearUsuarioSchema,
@@ -97,6 +98,7 @@ router.post("/:id/password", validateBody(reiniciarPasswordSchema), async (req, 
       bloqueadoHasta: null,
     },
   });
+  correos.enSegundoPlano("contraseña restablecida", () => correos.notificarPasswordCambiada(req.params.id, true));
   res.status(204).send();
 });
 

@@ -5,6 +5,7 @@ import { validateBody } from "../../middleware/validate";
 import { auditLog } from "../../middleware/auditLog";
 import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
+import * as correos from "../correos/correos.service";
 import { crearRecetaSchema } from "./recetas.schema";
 import * as recetasService from "./recetas.service";
 import { generarRecetaPdf } from "./recetas.pdf";
@@ -31,6 +32,11 @@ router.get("/:id/pdf", auditLog("VER"), async (req, res) => {
   enviarPdfComoRespuesta(doc, res, `${receta.numeroReceta}.pdf`);
   await generarRecetaPdf(doc, receta, membrete);
   doc.end();
+});
+
+// Envía el documento en PDF al correo registrado del paciente.
+router.post("/:id/enviar", auditLog("VER"), async (req, res) => {
+  res.json(await correos.enviarRecetaPorCorreo(req.params.id));
 });
 
 export default router;

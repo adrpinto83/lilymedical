@@ -8,6 +8,7 @@ import {
   ActualizarCitaInput,
   CrearBloqueoInput,
 } from "./citas.schema";
+import * as correos from "../correos/correos.service";
 
 const citaInclude = {
   paciente: { select: { id: true, nombres: true, apellidos: true, telefono: true } },
@@ -74,7 +75,9 @@ export async function listarCitas(desde: Date, hasta: Date, profesionalId?: stri
 
 export async function crearCita(data: CrearCitaInput) {
   await verificarDisponibilidad(data.profesionalId, data.fechaHoraInicio, data.fechaHoraFin);
-  return prisma.cita.create({ data });
+  const cita = await prisma.cita.create({ data });
+  correos.enSegundoPlano("cita agendada", () => correos.notificarCitaAgendada(cita.id));
+  return cita;
 }
 
 export async function crearCitasRecurrentes(data: CrearCitasRecurrentesInput) {
@@ -134,6 +137,7 @@ export async function crearCitasRecurrentes(data: CrearCitasRecurrentesInput) {
     })
   );
 
+  correos.enSegundoPlano("paquete agendado", () => correos.notificarPaqueteAgendado(citas.map((c) => c.id)));
   return citas;
 }
 
@@ -165,12 +169,25 @@ export async function actualizarCita(id: string, data: ActualizarCitaInput) {
     await verificarDisponibilidad(profesionalId, inicio, fin, id);
   }
 
-  return prisma.cita.update({
+  const actualizada = await prisma.cita.update({
     where: { id },
     // Al cambiar la fecha el recordatorio ya enviado quedó desactualizado.
     data: reprograma ? { ...data, recordatorioEnviado: false } : data,
     include: citaInclude,
   });
+
+  // Aviso al paciente según lo que cambió (un solo correo por edición).
+  if (estado !== cita.estado && estado === "CANCELADA") {
+    correos.enSegundoPlano("cita cancelada", () => correos.notificarCitaCancelada(id));
+  } else if (estado !== cita.estado && estado === "NO_ASISTIO") {
+    correos.enSegundoPlano("inasistencia", () => correos.notificarInasistencia(id));
+  } else if (reprograma && !ESTADOS_LIBERAN_HORARIO.includes(estado)) {
+    correos.enSegundoPlano("cita reprogramada", () => correos.notificarCitaReprogramada(id, cita.fechaHoraInicio));
+  } else if (reactiva) {
+    correos.enSegundoPlano("cita reactivada", () => correos.notificarCitaAgendada(id));
+  }
+
+  return actualizada;
 }
 
 // Todas las sesiones de un paquete, para ver el avance desde cualquiera de ellas.
@@ -183,13 +200,20 @@ export async function listarGrupoRecurrente(grupoRecurrenciaId: string) {
 }
 
 export async function cancelarGrupoRecurrente(grupoRecurrenciaId: string) {
-  return prisma.cita.updateMany({
-    where: {
-      grupoRecurrenciaId,
-      estado: { in: ["PROGRAMADA", "CONFIRMADA"] },
-    },
+  const pendientes = await prisma.cita.findMany({
+    where: { grupoRecurrenciaId, estado: { in: ["PROGRAMADA", "CONFIRMADA"] } },
+    select: { id: true },
+  });
+  const ids = pendientes.map((c) => c.id);
+  const resultado = await prisma.cita.updateMany({
+    // Se repite el filtro de estado por si alguna cambió entre la consulta y la actualización.
+    where: { id: { in: ids }, estado: { in: ["PROGRAMADA", "CONFIRMADA"] } },
     data: { estado: "CANCELADA" },
   });
+  if (resultado.count > 0) {
+    correos.enSegundoPlano("paquete cancelado", () => correos.notificarPaqueteCancelado(ids));
+  }
+  return resultado;
 }
 
 export async function crearBloqueo(data: CrearBloqueoInput) {

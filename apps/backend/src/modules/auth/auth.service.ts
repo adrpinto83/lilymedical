@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { prisma } from "../../lib/prisma";
 import { signToken } from "../../lib/jwt";
 import { HttpError } from "../../lib/http-error";
@@ -7,7 +8,10 @@ import {
   LoginInput,
   RegisterInput,
   RegistroPacienteInput,
+  RestablecerPasswordInput,
 } from "./auth.schema";
+import * as correos from "../correos/correos.service";
+import { urlApp } from "../correos/correos.layout";
 
 // Protección contra fuerza bruta (Fase 13): tras LOGIN_MAX_INTENTOS contraseñas
 // incorrectas consecutivas, la cuenta queda bloqueada por LOGIN_BLOQUEO_MINUTOS.
@@ -47,6 +51,7 @@ export async function login({ email, password }: LoginInput) {
       },
     });
     if (bloquear) {
+      correos.enSegundoPlano("cuenta bloqueada", () => correos.notificarCuentaBloqueada(usuario.id, bloqueoMinutos()));
       throw new HttpError(
         423,
         `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Vuelve a intentar en ${bloqueoMinutos()} minuto(s).`
@@ -129,6 +134,7 @@ export async function registrarPaciente(data: RegistroPacienteInput) {
       pacienteId: paciente.id,
     },
   });
+  correos.enSegundoPlano("portal activado", () => correos.notificarPortalActivado(usuario.id));
 
   const token = signToken({
     sub: usuario.id,
@@ -166,6 +172,7 @@ export async function register(data: RegisterInput) {
       especialidad: data.especialidad,
     },
   });
+  correos.enSegundoPlano("cuenta creada", () => correos.notificarCuentaPersonalCreada(usuario.id));
 
   return {
     id: usuario.id,
@@ -200,4 +207,63 @@ export async function cambiarPassword(usuarioId: string, { actual, nueva }: Camb
       bloqueadoHasta: null,
     },
   });
+  correos.enSegundoPlano("contraseña cambiada", () => correos.notificarPasswordCambiada(usuarioId, false));
+}
+
+// ---------- Olvidé mi contraseña ----------
+
+const RESTABLECER_MINUTOS = 60;
+
+// El enlace se firma con el hash actual de la contraseña: en cuanto se usa
+// (o la contraseña cambia por otra vía) deja de ser válido, sin necesidad de
+// guardar tokens en la base de datos.
+function secretoRestablecimiento(passwordHash: string): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET no está configurado");
+  return `${secret}:restablecer:${passwordHash}`;
+}
+
+/**
+ * Envía el enlace para elegir una nueva contraseña. No revela si el email
+ * existe: la respuesta es la misma en todos los casos y el envío ocurre en
+ * segundo plano.
+ */
+export async function solicitarRestablecimiento(email: string) {
+  const usuario = await prisma.usuario.findFirst({
+    where: { email: { equals: email.trim(), mode: "insensitive" } },
+  });
+  if (!usuario || !usuario.activo || usuario.eliminadoEn) return;
+
+  const token = jwt.sign({ sub: usuario.id }, secretoRestablecimiento(usuario.passwordHash), {
+    expiresIn: `${RESTABLECER_MINUTOS}m`,
+  });
+  const url = urlApp(`/restablecer-password?token=${encodeURIComponent(token)}`);
+  correos.enSegundoPlano("restablecer contraseña", () =>
+    correos.enviarEnlaceRestablecimiento(usuario, url, RESTABLECER_MINUTOS)
+  );
+}
+
+export async function restablecerPassword({ token, nueva }: RestablecerPasswordInput) {
+  const invalido = new HttpError(400, "El enlace no es válido o ya venció. Solicita uno nuevo.");
+  const decodificado = jwt.decode(token);
+  const usuarioId = decodificado && typeof decodificado === "object" ? decodificado.sub : undefined;
+  if (!usuarioId) throw invalido;
+
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario || !usuario.activo || usuario.eliminadoEn) throw invalido;
+  try {
+    jwt.verify(token, secretoRestablecimiento(usuario.passwordHash));
+  } catch {
+    throw invalido;
+  }
+
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: {
+      passwordHash: await bcrypt.hash(nueva, 10),
+      intentosFallidos: 0,
+      bloqueadoHasta: null,
+    },
+  });
+  correos.enSegundoPlano("contraseña cambiada", () => correos.notificarPasswordCambiada(usuario.id, false));
 }

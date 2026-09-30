@@ -7,6 +7,7 @@ import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
 import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
+import * as correos from "../correos/correos.service";
 import { crearPlanEjerciciosSchema } from "./planes-ejercicios.schema";
 import { generarPlanEjerciciosPdf } from "./planes-ejercicios.pdf";
 
@@ -69,6 +70,11 @@ router.get("/:id/pdf", auditLog("VER"), async (req, res) => {
   enviarPdfComoRespuesta(doc, res, `plan-ejercicios-${plan.paciente.documento}.pdf`);
   await generarPlanEjerciciosPdf(doc, plan, membrete);
   doc.end();
+});
+
+// Envía la guía de ejercicios (PDF + lista en el cuerpo) al paciente.
+router.post("/:id/enviar", auditLog("VER"), async (req, res) => {
+  res.json(await correos.enviarPlanEjerciciosPorCorreo(req.params.id));
 });
 
 export default router;

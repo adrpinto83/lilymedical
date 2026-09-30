@@ -13,6 +13,7 @@ import {
   registrarPago,
 } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
+import { enviarFacturaPorCorreo } from "../../services/correos";
 import {
   ESTADO_FACTURA,
   METODOS_PAGO,
@@ -37,6 +38,7 @@ export function FacturaDetalleModal({
 }) {
   const [factura, setFactura] = useState<Factura | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   async function recargar(id = facturaId) {
     if (!id) return;
@@ -50,6 +52,7 @@ export function FacturaDetalleModal({
   useEffect(() => {
     setFactura(null);
     setError(null);
+    setAviso(null);
     recargar(facturaId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facturaId]);
@@ -71,6 +74,18 @@ export function FacturaDetalleModal({
     const motivo = window.prompt("Motivo de la anulación (ej. reembolso, monto mal digitado):");
     if (!motivo?.trim()) return;
     accion(() => anularPago(facturaId!, pagoId, motivo.trim()));
+  }
+
+  async function handleEnviar() {
+    if (!factura || !confirm(`¿Enviar la factura ${factura.numeroFactura} en PDF al correo del paciente?`)) return;
+    setError(null);
+    setAviso(null);
+    try {
+      const email = await enviarFacturaPorCorreo(factura.id);
+      setAviso(`Factura enviada a ${email}.`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   }
 
   function handleAnularFactura() {
@@ -95,6 +110,8 @@ export function FacturaDetalleModal({
           onAnularPago={handleAnularPago}
           onAnularFactura={handleAnularFactura}
           onPdf={() => accion(() => abrirPdfFactura(factura.id))}
+          onEnviar={handleEnviar}
+          aviso={aviso}
           onClose={onClose}
         />
       )}
@@ -109,6 +126,8 @@ function Contenido({
   onAnularPago,
   onAnularFactura,
   onPdf,
+  onEnviar,
+  aviso,
   onClose,
 }: {
   factura: Factura;
@@ -117,6 +136,8 @@ function Contenido({
   onAnularPago: (pagoId: string) => void;
   onAnularFactura: () => void;
   onPdf: () => void;
+  onEnviar: () => void;
+  aviso: string | null;
   onClose: () => void;
 }) {
   const saldo = Number(factura.saldo ?? factura.total);
@@ -214,12 +235,18 @@ function Contenido({
       )}
 
       {error && <p className="text-red-600">{error}</p>}
+      {aviso && <p className="text-green-700">{aviso}</p>}
 
       <div className="flex flex-wrap justify-between gap-2 border-t border-slate-100 pt-3">
         <div className="flex gap-2">
           <Button type="button" variant="secondary" onClick={onPdf}>
             Ver PDF
           </Button>
+          {factura.estado !== "ANULADA" && (
+            <Button type="button" variant="secondary" onClick={onEnviar}>
+              ✉️ Enviar por correo
+            </Button>
+          )}
           {factura.estado !== "ANULADA" && (
             <Button
               type="button"

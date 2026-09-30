@@ -28,10 +28,20 @@ export function correoConfigurado(): boolean {
   return obtenerTransportador() !== null;
 }
 
+export interface AdjuntoEmail {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 export async function enviarEmail(opciones: {
   to: string;
   subject: string;
   html: string;
+  // Versión en texto plano: mejora la entrega (los filtros de spam penalizan
+  // los correos solo-HTML) y es lo que muestran los clientes sin HTML.
+  text?: string;
+  attachments?: AdjuntoEmail[];
 }): Promise<boolean> {
   const transporte = obtenerTransportador();
   if (!transporte) return false;
