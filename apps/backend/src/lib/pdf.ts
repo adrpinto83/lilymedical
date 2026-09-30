@@ -18,6 +18,13 @@ export interface Membrete {
   firmaPath?: string | null; // ruta absoluta en disco
 }
 
+// Fechas en la hora del consultorio: el servidor puede estar en UTC y, de
+// noche, "hoy" ya sería mañana.
+const ZONA_HORARIA = process.env.ZONA_HORARIA || "America/Caracas";
+export function fechaConsultorio(fecha: Date): string {
+  return fecha.toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: ZONA_HORARIA });
+}
+
 const SAGE = "#7c8c81";
 const PINK_DEEP = "#c05468";
 const INK = "#15304a";
@@ -64,11 +71,16 @@ function registrarFuentes(doc: PDFKit.PDFDocument) {
 // Tamaños de página: "MEDIA_CARTA" para documentos tipo recetario/constancia
 // (igual al formato físico que ya usa el consultorio), "CARTA" para reportes
 // más largos como la historia clínica completa.
-export function crearDocumentoPdf(tamano: "CARTA" | "MEDIA_CARTA" = "CARTA"): PDFKit.PDFDocument {
+// `bufferPages` retiene las páginas hasta el final para poder volver a ellas
+// (ej. numerar "Página X de Y" cuando ya se sabe el total).
+export function crearDocumentoPdf(
+  tamano: "CARTA" | "MEDIA_CARTA" = "CARTA",
+  opciones: { bufferPages?: boolean } = {}
+): PDFKit.PDFDocument {
   const doc =
     tamano === "MEDIA_CARTA"
-      ? new PDFDocument({ size: [396, 612], margin: 0 }) // 5.5" x 8.5"
-      : new PDFDocument({ size: "LETTER", margin: 50 });
+      ? new PDFDocument({ size: [396, 612], margin: 0, bufferPages: opciones.bufferPages }) // 5.5" x 8.5"
+      : new PDFDocument({ size: "LETTER", margin: 50, bufferPages: opciones.bufferPages });
   registrarFuentes(doc);
   return doc;
 }
@@ -370,7 +382,7 @@ export function dibujarMembrete(
     .fillColor(GRIS)
     .fontSize(9)
     .font("Body")
-    .text(`N° ${numeroDocumento}  ·  ${fecha.toLocaleDateString("es-VE")}`);
+    .text(`N° ${numeroDocumento}  ·  ${fechaConsultorio(fecha)}`);
 
   doc.moveDown(1);
 }

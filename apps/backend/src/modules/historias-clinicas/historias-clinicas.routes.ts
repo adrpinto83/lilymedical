@@ -7,6 +7,7 @@ import { actualizarHistoriaSchema, crearEvaluacionSchema } from "./historias-cli
 import * as historiasService from "./historias-clinicas.service";
 import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
+import { obtenerMedicoTitular } from "../correos/correos.service";
 import { generarHistoriaClinicaPdf } from "./historias-clinicas.pdf";
 import { HttpError } from "../../lib/http-error";
 
@@ -60,8 +61,11 @@ router.get("/paciente/:pacienteId/pdf", auditLog("VER"), async (req, res) => {
     hasta,
     incluirImagenes,
   });
-  const membrete = await construirMembrete(req.user!.sub);
-  const doc = crearDocumentoPdf();
+  // La historia sale con el membrete y la firma de un médico: si la imprime
+  // el fisiatra ayudante, la del médico titular (no la suya).
+  const medicoId = req.user!.rol === "MEDICO" ? req.user!.sub : (await obtenerMedicoTitular()).id;
+  const membrete = await construirMembrete(medicoId);
+  const doc = crearDocumentoPdf("CARTA", { bufferPages: true });
   enviarPdfComoRespuesta(doc, res, `historia-clinica-${historia.paciente.documento}.pdf`);
   await generarHistoriaClinicaPdf(doc, historia, membrete, { desde, hasta });
   doc.end();

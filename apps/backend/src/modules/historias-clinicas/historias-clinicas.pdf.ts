@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Adjunto, EvaluacionFisiatrica, HistoriaClinica, Paciente, Sesion } from "@prisma/client";
-import { dibujarMembrete, dibujarPiePagina, Membrete } from "../../lib/pdf";
+import { dibujarMembrete, dibujarPiePagina, fechaConsultorio, Membrete } from "../../lib/pdf";
 import { rutaAbsolutaAdjunto } from "../../lib/uploads";
 
 type HistoriaConDetalle = HistoriaClinica & {
@@ -81,7 +81,7 @@ function dibujarGraficoLineal(
       .font("Body")
       .fillColor(GRIS)
       .fontSize(6.5)
-      .text(p.fecha.toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit" }), x - 15, top + CHART_H + 4, {
+      .text(fechaConsultorio(p.fecha).slice(0, 5), x - 15, top + CHART_H + 4, {
         width: 30,
         align: "center",
       });
@@ -140,7 +140,9 @@ function calcularEdad(fechaNacimiento: Date) {
 }
 
 function seccion(doc: PDFKit.PDFDocument, titulo: string) {
-  if (doc.y > 680) doc.addPage();
+  // Deja lugar para el título y al menos el primer dato: un título solo al
+  // pie de la hoja no sirve al imprimir.
+  if (doc.y > 630) doc.addPage();
   doc.moveDown(0.6);
   doc.font("Display-Semi").fillColor(SAGE).fontSize(12).text(titulo);
   doc
@@ -247,7 +249,7 @@ export async function generarHistoriaClinicaPdf(
         .fillColor(INK)
         .fontSize(9.5)
         .text(
-          `${ev.fecha.toLocaleDateString("es-VE")} · ${ESCALA_LABEL[ev.tipoEscala] ?? ev.tipoEscala}` +
+          `${fechaConsultorio(ev.fecha)} · ${ESCALA_LABEL[ev.tipoEscala] ?? ev.tipoEscala}` +
             (ev.puntajeTotal !== null ? `: ${ev.puntajeTotal}` : ""),
           { continued: false }
         );
@@ -289,11 +291,11 @@ export async function generarHistoriaClinicaPdf(
         .fillColor(INK)
         .fontSize(9.5)
         .text(
-          `${s.fecha.toLocaleDateString("es-VE")} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}`
+          `${fechaConsultorio(s.fecha)} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}`
         );
       const eva =
         s.evaPre !== null || s.evaPost !== null
-          ? `EVA: ${s.evaPre ?? "—"} → ${s.evaPost ?? "—"}`
+          ? `EVA al llegar ${s.evaPre ?? "—"} · al salir ${s.evaPost ?? "—"}`
           : null;
       if (eva || s.modalidades.length > 0) {
         doc
@@ -326,7 +328,7 @@ export async function generarHistoriaClinicaPdf(
         .font("Body-Bold")
         .fillColor(INK)
         .fontSize(9.5)
-        .text(`${adjunto.categoria || "Estudio"} · ${adjunto.createdAt.toLocaleDateString("es-VE")}`);
+        .text(`${adjunto.categoria || "Estudio"} · ${fechaConsultorio(adjunto.createdAt)}`);
       if (adjunto.descripcion) {
         doc.font("Body").fillColor(GRIS).fontSize(9).text(adjunto.descripcion);
       }
@@ -347,4 +349,24 @@ export async function generarHistoriaClinicaPdf(
 
   doc.moveDown(1.5);
   await dibujarPiePagina(doc, membrete);
+  numerarPaginas(doc, `Historia fisiátrica · ${p.apellidos}, ${p.nombres} · C.I. ${p.documento}`);
+}
+
+/**
+ * Pie en cada hoja con el paciente y "Página X de Y": al imprimir, cualquier
+ * hoja suelta sigue identificada. Requiere el documento con bufferPages.
+ */
+function numerarPaginas(doc: PDFKit.PDFDocument, identificacion: string) {
+  const { start, count } = doc.bufferedPageRange();
+  for (let i = start; i < start + count; i++) {
+    doc.switchToPage(i);
+    // Se escribe dentro del margen inferior: sin esto pdfkit abriría otra página.
+    const margenInferior = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+    const y = doc.page.height - 32;
+    doc.font("Body").fontSize(7.5).fillColor(GRIS);
+    doc.text(identificacion, 50, y, { width: 380, lineBreak: false, ellipsis: true });
+    doc.text(`Página ${i - start + 1} de ${count}`, 432, y, { width: 130, align: "right", lineBreak: false });
+    doc.page.margins.bottom = margenInferior;
+  }
 }

@@ -56,6 +56,7 @@ const historia: HistoriaClinica = {
 beforeEach(() => {
   vi.mocked(historias.obtenerHistoriaPorPaciente).mockResolvedValue(historia);
   vi.mocked(historias.agregarEvaluacion).mockResolvedValue({} as never);
+  vi.mocked(historias.actualizarHistoria).mockResolvedValue({} as never);
   vi.mocked(citas.listarCitas).mockResolvedValue([]);
   vi.mocked(sesiones.crearSesion).mockResolvedValue({} as never);
 });
@@ -111,6 +112,59 @@ describe("HistoriaClinicaPanel", () => {
       expect(sesiones.crearSesion).toHaveBeenCalledWith(
         expect.objectContaining({ evaPre: 7, evaPost: null, modalidades: ["Crioterapia"], notaEvolucion: "Mejor movilidad" })
       )
+    );
+  });
+
+  it("guarda solo los campos modificados de la historia", async () => {
+    render(<HistoriaClinicaPanel pacienteId="p1" puedeEditar />);
+    fireEvent.click(await screen.findByText("Editar"));
+    expect(screen.getByText("Sin cambios")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Enfermedad actual"), { target: { value: "Dolor lumbar de 2 meses" } });
+    fireEvent.change(screen.getByLabelText("Fecha"), { target: { value: "2026-09-28" } });
+    expect(screen.getByText(/2 campo\(s\) modificado\(s\)/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Guardar historia"));
+    await waitFor(() =>
+      expect(historias.actualizarHistoria).toHaveBeenCalledWith("p1", {
+        enfermedadActual: "Dolor lumbar de 2 meses",
+        fechaConsulta: "2026-09-28",
+      })
+    );
+  });
+
+  it("Ctrl + S guarda la historia", async () => {
+    render(<HistoriaClinicaPanel pacienteId="p1" puedeEditar />);
+    fireEvent.click(await screen.findByText("Editar"));
+    fireEvent.change(screen.getByLabelText("Examen físico"), { target: { value: "Lasègue positivo" } });
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+    await waitFor(() =>
+      expect(historias.actualizarHistoria).toHaveBeenCalledWith("p1", { examenFisico: "Lasègue positivo" })
+    );
+  });
+
+  it("avisa antes de descartar cambios sin guardar", async () => {
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<HistoriaClinicaPanel pacienteId="p1" puedeEditar />);
+    fireEvent.click(await screen.findByText("Editar"));
+    fireEvent.change(screen.getByLabelText("Motivo de consulta"), { target: { value: "Cervicalgia" } });
+    fireEvent.click(screen.getByText("Cancelar"));
+    expect(confirmar).toHaveBeenCalled();
+    expect(screen.getByText("Guardar historia")).toBeTruthy(); // sigue editando
+    confirmar.mockRestore();
+  });
+
+  it("médico y ayudante pueden imprimir la historia con un rango de fechas", async () => {
+    vi.mocked(historias.imprimirPdfHistoriaClinica).mockResolvedValue();
+    render(<HistoriaClinicaPanel pacienteId="p1" puedeEditar={false} />);
+    fireEvent.click(await screen.findByText("🖨 Imprimir"));
+    fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-09-01" } });
+    // El de la ventana de impresión (el otro es el que la abre).
+    fireEvent.click(screen.getAllByRole("button", { name: "🖨 Imprimir" }).find((b) => b.getAttribute("type") === "submit")!);
+    await waitFor(() =>
+      expect(historias.imprimirPdfHistoriaClinica).toHaveBeenCalledWith("p1", {
+        desde: "2026-09-01",
+        hasta: undefined,
+        incluirImagenes: false,
+      })
     );
   });
 });

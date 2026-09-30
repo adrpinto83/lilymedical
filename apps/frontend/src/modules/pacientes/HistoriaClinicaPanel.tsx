@@ -1,15 +1,16 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { Input, Select, Textarea } from "../../components/ui/Input";
 import { Badge } from "../../components/ui/Badge";
 import { BodyDiagram, PuntoDolor } from "../../components/clinical/BodyDiagram";
 import { EvaluacionFisiatrica, HistoriaClinica, Sesion } from "../../types";
-import { obtenerHistoriaPorPaciente, actualizarHistoria } from "../../services/historiasClinicas";
+import { obtenerHistoriaPorPaciente } from "../../services/historiasClinicas";
 import { getErrorMessage } from "../../services/api";
 import { format } from "date-fns";
 import { EvaluacionForm } from "./fisiatria/EvaluacionForm";
+import { HistoriaDatosForm } from "./HistoriaDatosForm";
+import { ExportarHistoriaModal } from "../documentos/ExportarHistoriaModal";
 import { NotaSesionForm } from "./fisiatria/NotaSesionForm";
 import { COLOR_SERIE, GraficoEvolucion, SerieEvolucion } from "./fisiatria/GraficoEvolucion";
 import {
@@ -21,27 +22,6 @@ import {
   interpretarEva,
 } from "./fisiatria/escalas";
 
-// En el orden de la hoja de "Historia fisiátrica" en papel de la consulta.
-const CAMPOS_VACIOS = {
-  fechaConsulta: "",
-  motivoConsulta: "",
-  enfermedadActual: "",
-  estudiosComplementarios: "",
-  diagnosticoPrincipal: "",
-  codigoCIE10: "",
-  antecedentesMedicos: "",
-  antecedentesQuirurgicos: "",
-  antecedentesFamiliares: "",
-  alergias: "",
-  ocupacion: "",
-  dominancia: "",
-  actividadFisica: "",
-  contraindicaciones: "",
-  examenFisico: "",
-  objetivosRehabilitacion: "",
-  planTerapeutico: "",
-};
-type CamposHistoria = typeof CAMPOS_VACIOS;
 
 const ASISTENCIA_LABEL = { ASISTIO: "Asistió", INASISTIO: "No asistió", CANCELO: "Canceló" } as const;
 
@@ -59,8 +39,7 @@ export function HistoriaClinicaPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editandoDatos, setEditandoDatos] = useState(false);
-  const [datosForm, setDatosForm] = useState<CamposHistoria>(CAMPOS_VACIOS);
-  const [guardando, setGuardando] = useState(false);
+  const [imprimirAbierto, setImprimirAbierto] = useState(false);
   const [formulario, setFormulario] = useState<"sesion" | "evaluacion">("sesion");
   const [filtro, setFiltro] = useState<Filtro>("todo");
 
@@ -69,15 +48,6 @@ export function HistoriaClinicaPanel({
     try {
       const data = await obtenerHistoriaPorPaciente(pacienteId);
       setHistoria(data);
-      setDatosForm(
-        Object.fromEntries(
-          Object.keys(CAMPOS_VACIOS).map((k) => {
-            const valor = (data[k as keyof HistoriaClinica] as string | null) ?? "";
-            // La fecha llega como ISO; el input de tipo fecha espera AAAA-MM-DD.
-            return [k, k === "fechaConsulta" ? valor.slice(0, 10) : valor];
-          })
-        ) as CamposHistoria
-      );
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -91,29 +61,9 @@ export function HistoriaClinicaPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pacienteId]);
 
-  async function guardarDatos(e: FormEvent) {
-    e.preventDefault();
-    setGuardando(true);
-    try {
-      await actualizarHistoria(pacienteId, datosForm as Partial<HistoriaClinica>);
-      setEditandoDatos(false);
-      await cargar();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setGuardando(false);
-    }
-  }
-
   if (loading) return <p className="text-sm text-slate-500">Cargando historia clínica...</p>;
   if (error && !historia) return <p className="text-sm text-red-600">{error}</p>;
   if (!historia) return null;
-
-  const campo = (k: keyof CamposHistoria) => ({
-    value: datosForm[k],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setDatosForm((f) => ({ ...f, [k]: e.target.value })),
-  });
 
   const sesionesAsc = [...historia.sesiones].sort((a, b) => +new Date(a.fecha) - +new Date(b.fecha));
   const asistidas = sesionesAsc.filter((s) => s.asistencia === "ASISTIO");
@@ -191,128 +141,50 @@ export function HistoriaClinicaPanel({
       <Card>
         <CardHeader className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Historia fisiátrica</h2>
-          {puedeEditar && !editandoDatos && (
-            <Button variant="ghost" onClick={() => setEditandoDatos(true)}>
-              Editar
-            </Button>
+          {!editandoDatos && (
+            <div className="flex gap-1">
+              <Button variant="ghost" onClick={() => setImprimirAbierto(true)}>
+                🖨 Imprimir
+              </Button>
+              {puedeEditar && (
+                <Button variant="ghost" onClick={() => setEditandoDatos(true)}>
+                  Editar
+                </Button>
+              )}
+            </div>
           )}
         </CardHeader>
         <CardBody>
           {editandoDatos ? (
-            <form onSubmit={guardarDatos} className="flex flex-col gap-6">
-              <Grupo titulo="Datos de la historia">
-                <Input label="Fecha de la historia" type="date" {...campo("fechaConsulta")} />
-                <Input label="Ocupación" placeholder="ej. Enfermera, docente, chofer" {...campo("ocupacion")} />
-              </Grupo>
-              <Grupo titulo="Antecedentes">
-                <Textarea
-                  label="Antecedentes familiares"
-                  placeholder="ej. Padre fallecido por CA gástrico, madre HTA y diabetes"
-                  {...campo("antecedentesFamiliares")}
-                />
-                <Textarea
-                  label="Antecedentes personales (médicos)"
-                  placeholder="ej. HTA, diabetes, asma"
-                  {...campo("antecedentesMedicos")}
-                />
-                <Textarea
-                  label="Antecedentes personales (quirúrgicos)"
-                  placeholder="ej. Apendicectomía, 2 cesáreas, histerectomía"
-                  {...campo("antecedentesQuirurgicos")}
-                />
-                <Textarea
-                  label="Alergias"
-                  placeholder="ej. Penicilina, AINES, látex"
-                  hint="Se muestra como alerta en las recetas del paciente"
-                  {...campo("alergias")}
-                />
-              </Grupo>
-              <Grupo titulo="Consulta">
-                <Textarea label="Motivo de consulta" {...campo("motivoConsulta")} />
-                <Textarea
-                  label="Enfermedad actual"
-                  rows={4}
-                  placeholder="Inicio, evolución y características del cuadro actual"
-                  {...campo("enfermedadActual")}
-                />
-                <Textarea
-                  label="Examen físico"
-                  rows={4}
-                  placeholder="Inspección, postura, marcha, palpación, fuerza, sensibilidad, pruebas especiales"
-                  {...campo("examenFisico")}
-                />
-                <Textarea
-                  label="Estudios complementarios"
-                  rows={3}
-                  placeholder="ej. Rx de columna lumbar, RM, EMG / estudio de conducción nerviosa"
-                  {...campo("estudiosComplementarios")}
-                />
-              </Grupo>
-              <Grupo titulo="Diagnóstico y plan">
-                <Textarea label="IDX (diagnóstico)" {...campo("diagnosticoPrincipal")} />
-                <Input label="Código CIE-10" placeholder="ej. G56.2" {...campo("codigoCIE10")} />
-                <Textarea
-                  label="Plan de tratamiento"
-                  rows={4}
-                  placeholder={"ej. 1) Estudio de conducción nerviosa y EMG\n2) Medicación\n3) FT: 15 sesiones"}
-                  {...campo("planTerapeutico")}
-                />
-                <Textarea
-                  label="Objetivos de rehabilitación"
-                  rows={4}
-                  placeholder="ej. Disminuir dolor a EVA ≤ 3, recuperar flexión de dedos, reintegro laboral"
-                  {...campo("objetivosRehabilitacion")}
-                />
-              </Grupo>
-              <Grupo titulo="Perfil funcional y alertas">
-                <Select label="Dominancia" {...campo("dominancia")}>
-                  <option value="">Sin registrar</option>
-                  {DOMINANCIAS.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  label="Actividad física"
-                  placeholder="ej. Sedentario, camina 3 veces por semana, fútbol"
-                  {...campo("actividadFisica")}
-                />
-                <Textarea
-                  label="Contraindicaciones para agentes físicos"
-                  placeholder="ej. Marcapasos, prótesis metálica en rodilla derecha, embarazo, alteración de la sensibilidad"
-                  hint="Se muestra como alerta a quien registra las sesiones"
-                  {...campo("contraindicaciones")}
-                />
-              </Grupo>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => setEditandoDatos(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={guardando}>
-                  {guardando ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </form>
+            <HistoriaDatosForm
+              historia={historia}
+              onCancelar={() => setEditandoDatos(false)}
+              onGuardado={async () => {
+                setEditandoDatos(false);
+                await cargar();
+              }}
+            />
           ) : (
             <div className="flex flex-col gap-5">
               <Grupo titulo="Datos de la historia">
                 <Dato
-                  titulo="Fecha de la historia"
+                  titulo="Fecha"
                   valor={historia.fechaConsulta ? format(new Date(historia.fechaConsulta.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : null}
                 />
                 <Dato titulo="Ocupación" valor={historia.ocupacion} />
+                <Dato titulo="Dominancia" valor={DOMINANCIAS.find((d) => d.value === historia.dominancia)?.label} />
+                <Dato titulo="Actividad física" valor={historia.actividadFisica} />
               </Grupo>
               <Grupo titulo="Antecedentes">
-                <Dato titulo="Familiares" valor={historia.antecedentesFamiliares} />
-                <Dato titulo="Personales (médicos)" valor={historia.antecedentesMedicos} />
-                <Dato titulo="Personales (quirúrgicos)" valor={historia.antecedentesQuirurgicos} />
+                <Dato titulo="Familiares" valor={historia.antecedentesFamiliares} ancho />
+                <Dato titulo="Personales (médicos)" valor={historia.antecedentesMedicos} medio />
+                <Dato titulo="Personales (quirúrgicos)" valor={historia.antecedentesQuirurgicos} medio />
               </Grupo>
               <Grupo titulo="Consulta">
-                <Dato titulo="Motivo de consulta" valor={historia.motivoConsulta} />
-                <Dato titulo="Enfermedad actual" valor={historia.enfermedadActual} />
-                <Dato titulo="Examen físico" valor={historia.examenFisico} />
-                <Dato titulo="Estudios complementarios" valor={historia.estudiosComplementarios} />
+                <Dato titulo="Motivo de consulta" valor={historia.motivoConsulta} ancho />
+                <Dato titulo="Enfermedad actual" valor={historia.enfermedadActual} ancho />
+                <Dato titulo="Examen físico" valor={historia.examenFisico} ancho />
+                <Dato titulo="Estudios complementarios" valor={historia.estudiosComplementarios} ancho />
               </Grupo>
               <Grupo titulo="Diagnóstico y plan">
                 <Dato
@@ -321,16 +193,10 @@ export function HistoriaClinicaPanel({
                     historia.diagnosticoPrincipal &&
                     `${historia.diagnosticoPrincipal}${historia.codigoCIE10 ? ` (CIE-10: ${historia.codigoCIE10})` : ""}`
                   }
+                  ancho
                 />
-                <Dato titulo="Plan de tratamiento" valor={historia.planTerapeutico} />
-                <Dato titulo="Objetivos de rehabilitación" valor={historia.objetivosRehabilitacion} />
-              </Grupo>
-              <Grupo titulo="Perfil funcional">
-                <Dato
-                  titulo="Dominancia"
-                  valor={DOMINANCIAS.find((d) => d.value === historia.dominancia)?.label}
-                />
-                <Dato titulo="Actividad física" valor={historia.actividadFisica} />
+                <Dato titulo="Plan de tratamiento" valor={historia.planTerapeutico} medio />
+                <Dato titulo="Objetivos de rehabilitación" valor={historia.objetivosRehabilitacion} medio />
               </Grupo>
             </div>
           )}
@@ -433,6 +299,7 @@ export function HistoriaClinicaPanel({
           )}
         </CardBody>
       </Card>
+      <ExportarHistoriaModal open={imprimirAbierto} onClose={() => setImprimirAbierto(false)} pacienteId={pacienteId} />
     </div>
   );
 }
@@ -452,14 +319,26 @@ function Grupo({ titulo, children }: { titulo: string; children: React.ReactNode
   return (
     <section>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{titulo}</h3>
-      <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">{children}</dl>
     </section>
   );
 }
 
-function Dato({ titulo, valor }: { titulo: string; valor?: string | null }) {
+// Los textos largos (enfermedad actual, examen...) ocupan todo el ancho para
+// leerse como en la hoja; los datos cortos van en columnas.
+function Dato({
+  titulo,
+  valor,
+  ancho,
+  medio,
+}: {
+  titulo: string;
+  valor?: string | null;
+  ancho?: boolean;
+  medio?: boolean;
+}) {
   return (
-    <div>
+    <div className={clsx(ancho && "sm:col-span-2 lg:col-span-4", medio && "sm:col-span-1 lg:col-span-2")}>
       <dt className="text-slate-500">{titulo}</dt>
       <dd className="whitespace-pre-line text-slate-900">{valor || "—"}</dd>
     </div>

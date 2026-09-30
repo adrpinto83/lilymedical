@@ -81,7 +81,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
           </Button>
         </div>
         <Button variant="ghost" onClick={() => setExportarModalOpen(true)}>
-          📄 Exportar historia clínica completa (PDF)
+          🖨 Imprimir / exportar historia clínica
         </Button>
       </div>
 
