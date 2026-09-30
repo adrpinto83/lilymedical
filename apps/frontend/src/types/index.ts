@@ -76,6 +76,7 @@ export interface Paciente {
   sexo: SexoPaciente;
   telefono: string;
   email?: string | null;
+  instagram?: string | null;
   direccion?: string | null;
   aseguradoras?: PacienteAseguradora[];
   contactoEmergenciaNombre?: string | null;
@@ -125,7 +126,10 @@ export interface Adjunto {
 export interface HistoriaClinica {
   id: string;
   pacienteId: string;
+  fechaConsulta?: string | null;
   motivoConsulta?: string | null;
+  enfermedadActual?: string | null;
+  estudiosComplementarios?: string | null;
   diagnosticoPrincipal?: string | null;
   codigoCIE10?: string | null;
   antecedentesMedicos?: string | null;

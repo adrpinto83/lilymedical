@@ -106,6 +106,8 @@ const DOMINANCIA_LABEL: Record<string, string> = {
   AMBIDIESTRO: "Ambidiestro",
 };
 
+const SEXO_LABEL: Record<string, string> = { FEMENINO: "Femenino", MASCULINO: "Masculino", OTRO: "Otro" };
+
 const LADO_LABEL: Record<string, string> = { D: "der.", I: "izq." };
 
 // Líneas de detalle de una evaluación estructurada (ver escalas.ts del
@@ -165,20 +167,34 @@ export async function generarHistoriaClinicaPdf(
   opciones: OpcionesPdfHistoria = {}
 ) {
   const p = historia.paciente;
-  dibujarMembrete(doc, membrete, "Historia clínica", p.documento, new Date());
+  dibujarMembrete(doc, membrete, "Historia fisiátrica", p.documento, new Date());
 
   doc
     .font("Body-Bold")
     .fillColor(INK)
     .fontSize(11)
     .text(`${p.apellidos}, ${p.nombres}`);
-  doc
-    .font("Body")
-    .fillColor(GRIS)
-    .fontSize(9.5)
-    .text(
-      `${calcularEdad(p.fechaNacimiento)} años · ${p.sexo} · Doc. ${p.documento} · Tel. ${p.telefono}`
-    );
+  // Mismos datos de identificación que la hoja de papel de la consulta.
+  const fechaNac = `${String(p.fechaNacimiento.getUTCDate()).padStart(2, "0")}/${String(
+    p.fechaNacimiento.getUTCMonth() + 1
+  ).padStart(2, "0")}/${p.fechaNacimiento.getUTCFullYear()}`;
+  const identificacion = [
+    `C.I. ${p.documento}`,
+    `${calcularEdad(p.fechaNacimiento)} años (nac. ${fechaNac})`,
+    SEXO_LABEL[p.sexo] ?? p.sexo,
+    historia.ocupacion ? `Ocupación: ${historia.ocupacion}` : null,
+  ];
+  const contacto = [
+    `Tel. ${p.telefono}`,
+    p.email,
+    p.instagram ? `IG ${p.instagram.startsWith("@") ? p.instagram : `@${p.instagram}`}` : null,
+    p.direccion,
+  ];
+  doc.font("Body").fillColor(GRIS).fontSize(9.5).text(identificacion.filter(Boolean).join(" · "));
+  doc.text(contacto.filter(Boolean).join(" · "));
+  if (historia.fechaConsulta) {
+    doc.text(`Fecha de la historia: ${historia.fechaConsulta.toLocaleDateString("es-VE", { timeZone: "UTC" })}`);
+  }
   if (opciones.desde || opciones.hasta) {
     doc
       .font("Body-Italic")
@@ -192,29 +208,34 @@ export async function generarHistoriaClinicaPdf(
   }
   doc.moveDown(0.8);
 
-  seccion(doc, "Datos clínicos generales");
+  if (historia.antecedentesFamiliares || historia.antecedentesMedicos || historia.antecedentesQuirurgicos || historia.alergias) {
+    seccion(doc, "Antecedentes");
+    campo(doc, "Antecedentes familiares", historia.antecedentesFamiliares);
+    campo(doc, "Antecedentes personales (médicos)", historia.antecedentesMedicos);
+    campo(doc, "Antecedentes personales (quirúrgicos)", historia.antecedentesQuirurgicos);
+    campo(doc, "Alergias", historia.alergias);
+  }
+
+  seccion(doc, "Consulta");
   campo(doc, "Motivo de consulta", historia.motivoConsulta);
+  campo(doc, "Enfermedad actual", historia.enfermedadActual);
+  campo(doc, "Examen físico", historia.examenFisico);
+  campo(doc, "Estudios complementarios", historia.estudiosComplementarios);
   campo(
     doc,
-    "Diagnóstico principal",
+    "IDX (diagnóstico)",
     historia.diagnosticoPrincipal
       ? `${historia.diagnosticoPrincipal}${historia.codigoCIE10 ? ` (CIE-10: ${historia.codigoCIE10})` : ""}`
       : null
   );
-  campo(doc, "Antecedentes médicos", historia.antecedentesMedicos);
-  campo(doc, "Antecedentes quirúrgicos", historia.antecedentesQuirurgicos);
-  campo(doc, "Antecedentes familiares", historia.antecedentesFamiliares);
-  campo(doc, "Alergias", historia.alergias);
-  campo(doc, "Ocupación", historia.ocupacion);
-  campo(doc, "Dominancia", historia.dominancia ? DOMINANCIA_LABEL[historia.dominancia] ?? historia.dominancia : null);
-  campo(doc, "Actividad física", historia.actividadFisica);
-  campo(doc, "Contraindicaciones para agentes físicos", historia.contraindicaciones);
+  campo(doc, "Plan de tratamiento", historia.planTerapeutico);
+  campo(doc, "Objetivos de rehabilitación", historia.objetivosRehabilitacion);
 
-  if (historia.examenFisico || historia.objetivosRehabilitacion || historia.planTerapeutico) {
-    seccion(doc, "Examen físico y plan de rehabilitación");
-    campo(doc, "Examen físico", historia.examenFisico);
-    campo(doc, "Objetivos de rehabilitación", historia.objetivosRehabilitacion);
-    campo(doc, "Plan terapéutico", historia.planTerapeutico);
+  if (historia.dominancia || historia.actividadFisica || historia.contraindicaciones) {
+    seccion(doc, "Perfil funcional");
+    campo(doc, "Dominancia", historia.dominancia ? DOMINANCIA_LABEL[historia.dominancia] ?? historia.dominancia : null);
+    campo(doc, "Actividad física", historia.actividadFisica);
+    campo(doc, "Contraindicaciones para agentes físicos", historia.contraindicaciones);
   }
 
   if (historia.evaluaciones.length > 0) {

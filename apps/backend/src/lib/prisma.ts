@@ -5,6 +5,8 @@ import { encryptField, decryptField } from "./encryption";
 const ENCRYPTED_FIELDS: Record<string, string[]> = {
   historiaClinica: [
     "motivoConsulta",
+    "enfermedadActual",
+    "estudiosComplementarios",
     "diagnosticoPrincipal",
     "antecedentesMedicos",
     "antecedentesQuirurgicos",

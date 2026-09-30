@@ -8,6 +8,7 @@ export const crearPacienteSchema = z.object({
   sexo: z.enum(["MASCULINO", "FEMENINO", "OTRO"]),
   telefono: z.string().min(1),
   email: z.string().email().optional().or(z.literal("")),
+  instagram: z.string().optional(),
   direccion: z.string().optional(),
   contactoEmergenciaNombre: z.string().optional(),
   contactoEmergenciaTelefono: z.string().optional(),

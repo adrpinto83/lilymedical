@@ -21,6 +21,7 @@ const emptyForm = {
   sexo: "FEMENINO" as const,
   telefono: "",
   email: "",
+  instagram: "",
   direccion: "",
   contactoEmergenciaNombre: "",
   contactoEmergenciaTelefono: "",
@@ -41,6 +42,7 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
         sexo: paciente.sexo as any,
         telefono: paciente.telefono,
         email: paciente.email ?? "",
+        instagram: paciente.instagram ?? "",
         direccion: paciente.direccion ?? "",
         contactoEmergenciaNombre: paciente.contactoEmergenciaNombre ?? "",
         contactoEmergenciaTelefono: paciente.contactoEmergenciaTelefono ?? "",
@@ -96,6 +98,12 @@ export function PacienteFormModal({ open, onClose, onSaved, paciente }: Props) {
         </Select>
         <Input label="Teléfono" required value={form.telefono} onChange={(e) => update("telefono", e.target.value)} />
         <Input label="Email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} />
+        <Input
+          label="Instagram"
+          placeholder="@usuario"
+          value={form.instagram}
+          onChange={(e) => update("instagram", e.target.value)}
+        />
         <Input label="Dirección" value={form.direccion} onChange={(e) => update("direccion", e.target.value)} />
         <Input
           label="Contacto de emergencia"

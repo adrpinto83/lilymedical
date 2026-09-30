@@ -207,6 +207,7 @@ model Paciente {
   sexo                       SexoPaciente
   telefono                   String
   email                      String?
+  instagram                  String?
   direccion                  String?
   contactoEmergenciaNombre   String?
   contactoEmergenciaTelefono String?
@@ -260,7 +261,12 @@ model PacienteAseguradora {
 model HistoriaClinica {
   id                      String   @id @default(uuid())
   pacienteId              String   @unique
+  // Fecha de la historia (primera consulta). Puede ser anterior a la creación
+  // del registro cuando se transcribe una historia en papel.
+  fechaConsulta           DateTime? @db.Date
   motivoConsulta          String?
+  enfermedadActual        String? // evolución del cuadro que motiva la consulta
+  estudiosComplementarios String? // resultados o estudios solicitados (Rx, RM, EMG...)
   diagnosticoPrincipal    String?
   codigoCIE10             String?
   antecedentesMedicos     String?

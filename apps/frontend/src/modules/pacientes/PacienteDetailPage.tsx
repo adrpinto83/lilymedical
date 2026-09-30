@@ -121,6 +121,10 @@ export function PacienteDetailPage() {
                 <dd className="text-slate-900">{paciente.email || "—"}</dd>
               </div>
               <div>
+                <dt className="text-slate-500">Instagram</dt>
+                <dd className="text-slate-900">{paciente.instagram || "—"}</dd>
+              </div>
+              <div>
                 <dt className="text-slate-500">Dirección</dt>
                 <dd className="text-slate-900">{paciente.direccion || "—"}</dd>
               </div>

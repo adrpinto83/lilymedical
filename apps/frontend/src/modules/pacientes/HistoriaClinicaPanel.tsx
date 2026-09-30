@@ -21,8 +21,12 @@ import {
   interpretarEva,
 } from "./fisiatria/escalas";
 
+// En el orden de la hoja de "Historia fisiátrica" en papel de la consulta.
 const CAMPOS_VACIOS = {
+  fechaConsulta: "",
   motivoConsulta: "",
+  enfermedadActual: "",
+  estudiosComplementarios: "",
   diagnosticoPrincipal: "",
   codigoCIE10: "",
   antecedentesMedicos: "",
@@ -67,7 +71,11 @@ export function HistoriaClinicaPanel({
       setHistoria(data);
       setDatosForm(
         Object.fromEntries(
-          Object.keys(CAMPOS_VACIOS).map((k) => [k, (data[k as keyof HistoriaClinica] as string | null) ?? ""])
+          Object.keys(CAMPOS_VACIOS).map((k) => {
+            const valor = (data[k as keyof HistoriaClinica] as string | null) ?? "";
+            // La fecha llega como ISO; el input de tipo fecha espera AAAA-MM-DD.
+            return [k, k === "fechaConsulta" ? valor.slice(0, 10) : valor];
+          })
         ) as CamposHistoria
       );
     } catch (err) {
@@ -192,13 +200,71 @@ export function HistoriaClinicaPanel({
         <CardBody>
           {editandoDatos ? (
             <form onSubmit={guardarDatos} className="flex flex-col gap-6">
-              <Grupo titulo="Consulta y diagnóstico">
-                <Textarea label="Motivo de consulta" {...campo("motivoConsulta")} />
-                <Textarea label="Diagnóstico principal" {...campo("diagnosticoPrincipal")} />
-                <Input label="Código CIE-10" placeholder="ej. M54.5" {...campo("codigoCIE10")} />
+              <Grupo titulo="Datos de la historia">
+                <Input label="Fecha de la historia" type="date" {...campo("fechaConsulta")} />
+                <Input label="Ocupación" placeholder="ej. Enfermera, docente, chofer" {...campo("ocupacion")} />
               </Grupo>
-              <Grupo titulo="Perfil funcional">
-                <Input label="Ocupación" placeholder="ej. Docente, chofer, oficinista" {...campo("ocupacion")} />
+              <Grupo titulo="Antecedentes">
+                <Textarea
+                  label="Antecedentes familiares"
+                  placeholder="ej. Padre fallecido por CA gástrico, madre HTA y diabetes"
+                  {...campo("antecedentesFamiliares")}
+                />
+                <Textarea
+                  label="Antecedentes personales (médicos)"
+                  placeholder="ej. HTA, diabetes, asma"
+                  {...campo("antecedentesMedicos")}
+                />
+                <Textarea
+                  label="Antecedentes personales (quirúrgicos)"
+                  placeholder="ej. Apendicectomía, 2 cesáreas, histerectomía"
+                  {...campo("antecedentesQuirurgicos")}
+                />
+                <Textarea
+                  label="Alergias"
+                  placeholder="ej. Penicilina, AINES, látex"
+                  hint="Se muestra como alerta en las recetas del paciente"
+                  {...campo("alergias")}
+                />
+              </Grupo>
+              <Grupo titulo="Consulta">
+                <Textarea label="Motivo de consulta" {...campo("motivoConsulta")} />
+                <Textarea
+                  label="Enfermedad actual"
+                  rows={4}
+                  placeholder="Inicio, evolución y características del cuadro actual"
+                  {...campo("enfermedadActual")}
+                />
+                <Textarea
+                  label="Examen físico"
+                  rows={4}
+                  placeholder="Inspección, postura, marcha, palpación, fuerza, sensibilidad, pruebas especiales"
+                  {...campo("examenFisico")}
+                />
+                <Textarea
+                  label="Estudios complementarios"
+                  rows={3}
+                  placeholder="ej. Rx de columna lumbar, RM, EMG / estudio de conducción nerviosa"
+                  {...campo("estudiosComplementarios")}
+                />
+              </Grupo>
+              <Grupo titulo="Diagnóstico y plan">
+                <Textarea label="IDX (diagnóstico)" {...campo("diagnosticoPrincipal")} />
+                <Input label="Código CIE-10" placeholder="ej. G56.2" {...campo("codigoCIE10")} />
+                <Textarea
+                  label="Plan de tratamiento"
+                  rows={4}
+                  placeholder={"ej. 1) Estudio de conducción nerviosa y EMG\n2) Medicación\n3) FT: 15 sesiones"}
+                  {...campo("planTerapeutico")}
+                />
+                <Textarea
+                  label="Objetivos de rehabilitación"
+                  rows={4}
+                  placeholder="ej. Disminuir dolor a EVA ≤ 3, recuperar flexión de dedos, reintegro laboral"
+                  {...campo("objetivosRehabilitacion")}
+                />
+              </Grupo>
+              <Grupo titulo="Perfil funcional y alertas">
                 <Select label="Dominancia" {...campo("dominancia")}>
                   <option value="">Sin registrar</option>
                   {DOMINANCIAS.map((d) => (
@@ -212,42 +278,11 @@ export function HistoriaClinicaPanel({
                   placeholder="ej. Sedentario, camina 3 veces por semana, fútbol"
                   {...campo("actividadFisica")}
                 />
-              </Grupo>
-              <Grupo titulo="Antecedentes y alertas">
-                <Textarea label="Antecedentes médicos" {...campo("antecedentesMedicos")} />
-                <Textarea label="Antecedentes quirúrgicos" {...campo("antecedentesQuirurgicos")} />
-                <Textarea label="Antecedentes familiares" {...campo("antecedentesFamiliares")} />
-                <Textarea
-                  label="Alergias"
-                  placeholder="ej. Penicilina, AINES, látex"
-                  hint="Se muestra como alerta en las recetas del paciente"
-                  {...campo("alergias")}
-                />
                 <Textarea
                   label="Contraindicaciones para agentes físicos"
                   placeholder="ej. Marcapasos, prótesis metálica en rodilla derecha, embarazo, alteración de la sensibilidad"
                   hint="Se muestra como alerta a quien registra las sesiones"
                   {...campo("contraindicaciones")}
-                />
-              </Grupo>
-              <Grupo titulo="Examen físico y plan">
-                <Textarea
-                  label="Examen físico"
-                  rows={4}
-                  placeholder="Inspección, postura, marcha, palpación, pruebas especiales (Lasègue, Neer, Phalen...)"
-                  {...campo("examenFisico")}
-                />
-                <Textarea
-                  label="Objetivos de rehabilitación"
-                  rows={4}
-                  placeholder="ej. Disminuir dolor a EVA ≤ 3, recuperar flexión de hombro a 160°, reintegro laboral"
-                  {...campo("objetivosRehabilitacion")}
-                />
-                <Textarea
-                  label="Plan terapéutico"
-                  rows={4}
-                  placeholder="ej. 10 sesiones, 3 por semana: compresas calientes, TENS, US, ejercicios de Williams"
-                  {...campo("planTerapeutico")}
                 />
               </Grupo>
               <div className="flex justify-end gap-2">
@@ -261,27 +296,41 @@ export function HistoriaClinicaPanel({
             </form>
           ) : (
             <div className="flex flex-col gap-5">
-              <Grupo titulo="Consulta y diagnóstico">
+              <Grupo titulo="Datos de la historia">
+                <Dato
+                  titulo="Fecha de la historia"
+                  valor={historia.fechaConsulta ? format(new Date(historia.fechaConsulta.slice(0, 10) + "T12:00:00"), "dd/MM/yyyy") : null}
+                />
+                <Dato titulo="Ocupación" valor={historia.ocupacion} />
+              </Grupo>
+              <Grupo titulo="Antecedentes">
+                <Dato titulo="Familiares" valor={historia.antecedentesFamiliares} />
+                <Dato titulo="Personales (médicos)" valor={historia.antecedentesMedicos} />
+                <Dato titulo="Personales (quirúrgicos)" valor={historia.antecedentesQuirurgicos} />
+              </Grupo>
+              <Grupo titulo="Consulta">
                 <Dato titulo="Motivo de consulta" valor={historia.motivoConsulta} />
-                <Dato titulo="Diagnóstico principal" valor={historia.diagnosticoPrincipal} />
+                <Dato titulo="Enfermedad actual" valor={historia.enfermedadActual} />
+                <Dato titulo="Examen físico" valor={historia.examenFisico} />
+                <Dato titulo="Estudios complementarios" valor={historia.estudiosComplementarios} />
+              </Grupo>
+              <Grupo titulo="Diagnóstico y plan">
+                <Dato
+                  titulo="IDX (diagnóstico)"
+                  valor={
+                    historia.diagnosticoPrincipal &&
+                    `${historia.diagnosticoPrincipal}${historia.codigoCIE10 ? ` (CIE-10: ${historia.codigoCIE10})` : ""}`
+                  }
+                />
+                <Dato titulo="Plan de tratamiento" valor={historia.planTerapeutico} />
+                <Dato titulo="Objetivos de rehabilitación" valor={historia.objetivosRehabilitacion} />
               </Grupo>
               <Grupo titulo="Perfil funcional">
-                <Dato titulo="Ocupación" valor={historia.ocupacion} />
                 <Dato
                   titulo="Dominancia"
                   valor={DOMINANCIAS.find((d) => d.value === historia.dominancia)?.label}
                 />
                 <Dato titulo="Actividad física" valor={historia.actividadFisica} />
-              </Grupo>
-              <Grupo titulo="Antecedentes">
-                <Dato titulo="Médicos" valor={historia.antecedentesMedicos} />
-                <Dato titulo="Quirúrgicos" valor={historia.antecedentesQuirurgicos} />
-                <Dato titulo="Familiares" valor={historia.antecedentesFamiliares} />
-              </Grupo>
-              <Grupo titulo="Examen físico y plan">
-                <Dato titulo="Examen físico" valor={historia.examenFisico} />
-                <Dato titulo="Objetivos de rehabilitación" valor={historia.objetivosRehabilitacion} />
-                <Dato titulo="Plan terapéutico" valor={historia.planTerapeutico} />
               </Grupo>
             </div>
           )}
