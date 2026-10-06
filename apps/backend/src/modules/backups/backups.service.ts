@@ -8,7 +8,9 @@ const execFileAsync = promisify(execFile);
 
 const PREFIJO = "lilymedical-";
 const EXTENSION = ".dump";
-const NOMBRE_REGEX = /^lilymedical-\d{8}T\d{6}\.dump$/;
+// Volcado de la base de datos (.dump) o copia de los archivos subidos
+// (estudios, firmas, fotos de pacientes, galería) en .tar.gz.
+const NOMBRE_REGEX = /^lilymedical-(?:\d{8}T\d{6}\.dump|uploads-\d{8}T\d{6}\.tar\.gz)$/;
 
 export interface BackupInfo {
   archivo: string;
@@ -72,6 +74,34 @@ export async function crearBackup(): Promise<BackupInfo> {
       );
     }
     throw new HttpError(500, `No se pudo generar el backup: ${nodeErr.stderr?.trim() || nodeErr.message}`);
+  }
+
+  await limpiarBackupsAntiguos();
+
+  const stat = await fs.stat(rutaCompleta);
+  return { archivo, tamanioBytes: stat.size, creadoEn: stat.birthtime };
+}
+
+function directorioUploads(): string {
+  return path.resolve(process.cwd(), process.env.UPLOADS_DIR || "uploads");
+}
+
+// Los archivos subidos no están en la base de datos: sin esta copia, un
+// fallo del disco perdería estudios, firmas y fotos aunque haya volcado.
+// Se restaura con `tar xzf <archivo> -C <carpeta que contiene uploads>`.
+export async function crearBackupArchivos(): Promise<BackupInfo> {
+  const dir = directorioBackups();
+  await fs.mkdir(dir, { recursive: true });
+
+  const uploads = directorioUploads();
+  const archivo = `${PREFIJO}uploads-${timestamp()}.tar.gz`;
+  const rutaCompleta = path.join(dir, archivo);
+  try {
+    await execFileAsync("tar", ["-czf", rutaCompleta, "-C", path.dirname(uploads), path.basename(uploads)]);
+  } catch (err) {
+    await fs.unlink(rutaCompleta).catch(() => undefined);
+    const nodeErr = err as NodeJS.ErrnoException & { stderr?: string };
+    throw new HttpError(500, `No se pudo respaldar los archivos subidos: ${nodeErr.stderr?.trim() || nodeErr.message}`);
   }
 
   await limpiarBackupsAntiguos();

@@ -14,10 +14,12 @@ router.get("/", async (_req, res) => {
   res.json(backups);
 });
 
-// Genera un backup fuera del horario programado (ver backups.job.ts).
+// Genera un backup fuera del horario programado (ver backups.job.ts):
+// base de datos y archivos subidos.
 router.post("/ejecutar", async (_req, res) => {
-  const backup = await backupsService.crearBackup();
-  res.status(201).json(backup);
+  const baseDeDatos = await backupsService.crearBackup();
+  const archivos = await backupsService.crearBackupArchivos();
+  res.status(201).json({ baseDeDatos, archivos });
 });
 
 router.get("/:archivo/descargar", async (req, res) => {

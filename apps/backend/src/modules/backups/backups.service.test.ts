@@ -15,7 +15,14 @@ vi.mock("child_process", () => ({
 }));
 vi.mock("fs/promises", () => ({ default: fsMock }));
 
-import { conexionPgDump, crearBackup, listarBackups, limpiarBackupsAntiguos, rutaBackupSeguro } from "./backups.service";
+import {
+  conexionPgDump,
+  crearBackup,
+  crearBackupArchivos,
+  listarBackups,
+  limpiarBackupsAntiguos,
+  rutaBackupSeguro,
+} from "./backups.service";
 import { HttpError } from "../../lib/http-error";
 
 beforeEach(() => {
@@ -70,6 +77,30 @@ describe("backups.service.crearBackup", () => {
   });
 });
 
+describe("backups.service.crearBackupArchivos", () => {
+  it("comprime la carpeta de archivos subidos en un .tar.gz junto a los volcados", async () => {
+    process.env.UPLOADS_DIR = "/opt/lilymedical/apps/backend/uploads";
+    execFileMock.mockImplementation((...args: any[]) => args.at(-1)(null, "", ""));
+    fsMock.stat.mockResolvedValue({ size: 5000, birthtime: new Date() });
+
+    const backup = await crearBackupArchivos();
+
+    expect(backup.archivo).toMatch(/^lilymedical-uploads-\d{8}T\d{6}\.tar\.gz$/);
+    expect(execFileMock).toHaveBeenCalledWith(
+      "tar",
+      ["-czf", expect.stringMatching(/lilymedical-uploads-.*\.tar\.gz$/), "-C", "/opt/lilymedical/apps/backend", "uploads"],
+      expect.any(Function)
+    );
+    expect(rutaBackupSeguro(backup.archivo)).toContain(backup.archivo);
+  });
+
+  it("si tar falla borra el archivo a medias", async () => {
+    execFileMock.mockImplementation((...args: any[]) => args.at(-1)(Object.assign(new Error("x"), { stderr: "tar: sin espacio" })));
+    await expect(crearBackupArchivos()).rejects.toThrow("No se pudo respaldar los archivos subidos: tar: sin espacio");
+    expect(fsMock.unlink).toHaveBeenCalledWith(expect.stringMatching(/\.tar\.gz$/));
+  });
+});
+
 describe("backups.service.listarBackups", () => {
   it("ignora archivos que no siguen el patrón de nombre de backup", async () => {
     fsMock.readdir.mockResolvedValue(["lilymedical-20260101T000000.dump", "otro.txt", ".gitkeep"]);
@@ -111,6 +142,11 @@ describe("backups.service.limpiarBackupsAntiguos", () => {
 describe("backups.service.rutaBackupSeguro", () => {
   it("acepta nombres de archivo con el formato esperado", () => {
     expect(() => rutaBackupSeguro("lilymedical-20260101T000000.dump")).not.toThrow();
+  });
+
+  it("acepta también la copia de archivos subidos", () => {
+    expect(() => rutaBackupSeguro("lilymedical-uploads-20260101T000000.tar.gz")).not.toThrow();
+    expect(() => rutaBackupSeguro("lilymedical-uploads-20260101T000000.dump")).toThrow(HttpError);
   });
 
   it("rechaza intentos de path traversal u otros nombres", () => {
