@@ -23,6 +23,8 @@ import plantillasRecetaRoutes from "./modules/plantillas-receta/plantillas-recet
 import plantillasEjercicioRoutes from "./modules/plantillas-ejercicio/plantillas-ejercicio.routes";
 import planesEjerciciosRoutes from "./modules/planes-ejercicios/planes-ejercicios.routes";
 import constanciasRoutes from "./modules/constancias/constancias.routes";
+import informesMedicosRoutes from "./modules/informes-medicos/informes-medicos.routes";
+import presupuestosRoutes from "./modules/presupuestos/presupuestos.routes";
 import verificacionRoutes from "./modules/verificacion/verificacion.routes";
 import recordatoriosRoutes from "./modules/recordatorios/recordatorios.routes";
 import portalPacienteRoutes from "./modules/portal-paciente/portal-paciente.routes";
@@ -92,6 +94,8 @@ export function createApp() {
   app.use("/api/plantillas-ejercicio", plantillasEjercicioRoutes);
   app.use("/api/planes-ejercicios", planesEjerciciosRoutes);
   app.use("/api/constancias", constanciasRoutes);
+  app.use("/api/informes-medicos", informesMedicosRoutes);
+  app.use("/api/presupuestos", presupuestosRoutes);
   app.use("/api/verificar", verificacionRoutes);
   app.use("/api/recordatorios", recordatoriosRoutes);
   app.use("/api/portal", portalPacienteRoutes);

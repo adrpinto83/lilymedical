@@ -8,6 +8,7 @@ import { validateBody } from "../../middleware/validate";
 import { HttpError } from "../../lib/http-error";
 import { actualizarPerfilMedicoSchema } from "./perfil-medico.schema";
 import * as perfilService from "./perfil-medico.service";
+import { fijarSiguienteNumero, listarNumeracion } from "../../lib/correlativos";
 
 const firmasDir = path.resolve(process.cwd(), process.env.UPLOADS_DIR || "uploads", "firmas");
 if (!fs.existsSync(firmasDir)) fs.mkdirSync(firmasDir, { recursive: true });
@@ -31,6 +32,15 @@ const upload = multer({
 const router = Router();
 
 router.use(requireAuth, roleGuard("MEDICO"));
+
+// Numeración de documentos: el médico fija con qué número sale el próximo.
+router.get("/numeracion", async (_req, res) => {
+  res.json(await listarNumeracion());
+});
+
+router.put("/numeracion/:prefijo", async (req, res) => {
+  res.json(await fijarSiguienteNumero(req.params.prefijo, Number(req.body?.siguiente)));
+});
 
 router.get("/me", async (req, res) => {
   const perfil = await perfilService.obtenerOCrearPerfil(req.user!.sub);

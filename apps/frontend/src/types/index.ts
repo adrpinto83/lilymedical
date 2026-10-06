@@ -308,6 +308,39 @@ export interface ConstanciaMedica {
   medico?: { nombre: string; apellido: string };
 }
 
+export interface InformeMedico {
+  id: string;
+  numeroInforme: string;
+  pacienteId: string;
+  informe: string;
+  indicaciones?: string | null;
+  fecha: string;
+  medico?: { nombre: string; apellido: string };
+}
+
+export interface PresupuestoItem {
+  id: string;
+  tarifaId?: string | null;
+  descripcion: string;
+  cantidad: number;
+  precioUnitario: string;
+  subtotal: string;
+}
+
+export interface Presupuesto {
+  id: string;
+  numeroPresupuesto: string;
+  pacienteId: string;
+  paciente?: { id: string; nombres: string; apellidos: string; documento: string };
+  fecha: string;
+  diagnostico?: string | null;
+  tasaCambio?: string | null;
+  total: string;
+  notas?: string | null;
+  anulado: boolean;
+  items: PresupuestoItem[];
+}
+
 export interface PerfilMedico {
   id: string;
   usuarioId: string;

@@ -135,6 +135,8 @@ model Usuario {
   perfilMedico             PerfilMedico?
   recetasEmitidas          Receta[]               @relation("MedicoRecetas")
   constanciasEmitidas      ConstanciaMedica[]     @relation("MedicoConstancias")
+  informesEmitidos         InformeMedico[]        @relation("MedicoInformes")
+  presupuestosCreados      Presupuesto[]          @relation("PresupuestosCreados")
   plantillasReceta         PlantillaReceta[]
   planesEjerciciosEmitidos PlanEjercicios[]       @relation("MedicoPlanesEjercicios")
   fotosGaleriaSubidas      FotoGaleria[]          @relation("UsuarioFotosGaleria")
@@ -229,6 +231,8 @@ model Paciente {
   logsAcceso           LogAcceso[]
   recetas              Receta[]
   constancias          ConstanciaMedica[]
+  informesMedicos      InformeMedico[]
+  presupuestos         Presupuesto[]
   planesEjercicios     PlanEjercicios[]
   usuarioPortal        Usuario?
 
@@ -262,8 +266,8 @@ model PacienteAseguradora {
 // ============================================================
 
 model HistoriaClinica {
-  id                      String   @id @default(uuid())
-  pacienteId              String   @unique
+  id                      String    @id @default(uuid())
+  pacienteId              String    @unique
   // Fecha de la historia (primera consulta). Puede ser anterior a la creación
   // del registro cuando se transcribe una historia en papel.
   fechaConsulta           DateTime? @db.Date
@@ -286,8 +290,8 @@ model HistoriaClinica {
   examenFisico            String? // inspección, postura, marcha, palpación, pruebas especiales
   objetivosRehabilitacion String?
   planTerapeutico         String? // modalidades, frecuencia y número de sesiones indicadas
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   paciente         Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   evaluaciones     EvaluacionFisiatrica[]
@@ -296,6 +300,7 @@ model HistoriaClinica {
   logsAcceso       LogAcceso[]
   recetas          Receta[]
   constancias      ConstanciaMedica[]
+  informesMedicos  InformeMedico[]
   planesEjercicios PlanEjercicios[]
 
   @@map("historias_clinicas")
@@ -425,9 +430,10 @@ model Tarifa {
   activo         Boolean  @default(true)
   createdAt      DateTime @default(now())
 
-  aseguradora     Aseguradora?     @relation(fields: [aseguradoraId], references: [id])
-  citas           Cita[]
-  facturaDetalles FacturaDetalle[]
+  aseguradora      Aseguradora?      @relation(fields: [aseguradoraId], references: [id])
+  citas            Cita[]
+  facturaDetalles  FacturaDetalle[]
+  presupuestoItems PresupuestoItem[]
 
   @@map("tarifas")
 }
@@ -822,6 +828,67 @@ model FotoGaleria {
 // incrementan con un único INSERT ... ON CONFLICT atómico (ver
 // src/lib/correlativos.ts) para que dos documentos emitidos a la vez nunca
 // reciban el mismo número.
+// Informe médico en el formato del talonario (media carta): texto libre
+// del médico y lo que se plantea a seguir.
+model InformeMedico {
+  id                String   @id @default(uuid())
+  numeroInforme     String   @unique
+  pacienteId        String
+  historiaClinicaId String
+  medicoId          String
+  informe           String // cifrado en reposo
+  indicaciones      String? // "Se plantea": conducta a seguir, cifrado en reposo
+  fecha             DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  paciente        Paciente        @relation(fields: [pacienteId], references: [id])
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id])
+  medico          Usuario         @relation("MedicoInformes", fields: [medicoId], references: [id])
+
+  @@index([pacienteId])
+  @@map("informes_medicos")
+}
+
+// Presupuesto de tratamiento para el paciente, en dólares y su equivalente
+// en bolívares a la tasa BCV del día en que se emite. No es una factura: no
+// mueve saldos ni cuenta como ingreso.
+model Presupuesto {
+  id                String   @id @default(uuid())
+  numeroPresupuesto String   @unique
+  pacienteId        String
+  creadoPorId       String
+  fecha             DateTime @default(now())
+  diagnostico       String? // IDX que se imprime en el presupuesto, cifrado en reposo
+  tasaCambio        Decimal? @db.Decimal(14, 4) // Bs por dólar (BCV)
+  total             Decimal  @db.Decimal(10, 2)
+  notas             String?
+  anulado           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  paciente  Paciente          @relation(fields: [pacienteId], references: [id])
+  creadoPor Usuario           @relation("PresupuestosCreados", fields: [creadoPorId], references: [id])
+  items     PresupuestoItem[]
+
+  @@index([pacienteId])
+  @@map("presupuestos")
+}
+
+model PresupuestoItem {
+  id             String  @id @default(uuid())
+  presupuestoId  String
+  tarifaId       String?
+  descripcion    String
+  cantidad       Int
+  precioUnitario Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+
+  presupuesto Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  tarifa      Tarifa?     @relation(fields: [tarifaId], references: [id])
+
+  @@index([presupuestoId])
+  @@map("presupuesto_items")
+}
+
 model Correlativo {
   serie String @id // ej. "LM-2026", "RX-2026", "CM-2026"
   valor Int

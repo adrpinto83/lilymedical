@@ -2,14 +2,16 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
-import { Receta, ConstanciaMedica, PlanEjercicios } from "../../types";
+import { Receta, ConstanciaMedica, PlanEjercicios, InformeMedico } from "../../types";
 import { listarRecetasPorPaciente, abrirPdfReceta } from "../../services/recetas";
 import { listarConstanciasPorPaciente, abrirPdfConstancia } from "../../services/constancias";
 import { listarPlanesPorPaciente, abrirPdfPlanEjercicios } from "../../services/planesEjercicios";
+import { listarInformesPorPaciente, abrirPdfInformeMedico } from "../../services/informesMedicos";
 import { getErrorMessage } from "../../services/api";
 import { enviarDocumentoPorCorreo, TipoDocumentoCorreo } from "../../services/correos";
 import { RecetaFormModal } from "./RecetaFormModal";
 import { ConstanciaFormModal } from "./ConstanciaFormModal";
+import { InformeMedicoFormModal } from "./InformeMedicoFormModal";
 import { PlanEjerciciosFormModal } from "./PlanEjerciciosFormModal";
 import { ExportarHistoriaModal } from "./ExportarHistoriaModal";
 import { format } from "date-fns";
@@ -18,6 +20,8 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [constancias, setConstancias] = useState<ConstanciaMedica[]>([]);
   const [planes, setPlanes] = useState<PlanEjercicios[]>([]);
+  const [informes, setInformes] = useState<InformeMedico[]>([]);
+  const [informeModalOpen, setInformeModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recetaModalOpen, setRecetaModalOpen] = useState(false);
   const [constanciaModalOpen, setConstanciaModalOpen] = useState(false);
@@ -51,14 +55,16 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
 
   const cargar = useCallback(async () => {
     try {
-      const [r, c, p] = await Promise.all([
+      const [r, c, p, i] = await Promise.all([
         listarRecetasPorPaciente(pacienteId),
         listarConstanciasPorPaciente(pacienteId),
         listarPlanesPorPaciente(pacienteId),
+        listarInformesPorPaciente(pacienteId),
       ]);
       setRecetas(r);
       setConstancias(c);
       setPlanes(p);
+      setInformes(i);
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -73,6 +79,9 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setRecetaModalOpen(true)}>+ Nueva receta</Button>
+          <Button variant="secondary" onClick={() => setInformeModalOpen(true)}>
+            + Nuevo informe médico
+          </Button>
           <Button variant="secondary" onClick={() => setConstanciaModalOpen(true)}>
             + Nueva constancia
           </Button>
@@ -118,6 +127,33 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                       Ver PDF
                     </Button>
                   </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold text-slate-900">Informes médicos</h2>
+        </CardHeader>
+        <CardBody className="p-0">
+          {informes.length === 0 ? (
+            <p className="p-4 text-sm text-slate-500">Aún no se han emitido informes.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {informes.map((i) => (
+                <li key={i.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">
+                      {i.numeroInforme} <span className="font-normal text-slate-500">· {format(new Date(i.fecha), "dd/MM/yyyy")}</span>
+                    </p>
+                    <p className="truncate text-slate-500">{i.informe}</p>
+                  </div>
+                  <Button variant="ghost" className="shrink-0" onClick={() => abrirPdfInformeMedico(i.id)}>
+                    Ver PDF
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -195,6 +231,12 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
       <PlanEjerciciosFormModal
         open={planModalOpen}
         onClose={() => setPlanModalOpen(false)}
+        onCreated={cargar}
+        pacienteId={pacienteId}
+      />
+      <InformeMedicoFormModal
+        open={informeModalOpen}
+        onClose={() => setInformeModalOpen(false)}
         onCreated={cargar}
         pacienteId={pacienteId}
       />

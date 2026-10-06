@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { verPdf } from "./pdf";
 import { ConstanciaMedica } from "../types";
 
 export async function listarConstanciasPorPaciente(pacienteId: string): Promise<ConstanciaMedica[]> {
@@ -19,8 +20,6 @@ export async function crearConstancia(payload: {
   return data;
 }
 
-export async function abrirPdfConstancia(id: string): Promise<void> {
-  const { data } = await api.get(`/constancias/${id}/pdf`, { responseType: "blob" });
-  const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-  window.open(url, "_blank");
+export function abrirPdfConstancia(id: string): Promise<void> {
+  return verPdf(`/constancias/${id}/pdf`);
 }

@@ -7,6 +7,7 @@ import { obtenerPerfilMedico, actualizarPerfilMedico, subirFirma } from "../../s
 import { getErrorMessage } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { CambiarPasswordCard } from "../../components/cuenta/CambiarPasswordCard";
+import { NumeracionCard } from "./NumeracionCard";
 
 export function PerfilMedicoPage() {
   const { user } = useAuth();
@@ -223,6 +224,8 @@ export function PerfilMedicoPage() {
           </div>
         </CardBody>
       </Card>
+
+      <NumeracionCard />
 
       <CambiarPasswordCard />
     </div>

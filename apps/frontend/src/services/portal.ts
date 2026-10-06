@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { verPdf } from "./pdf";
 import { Paciente, Cita, Receta, ConstanciaMedica, PlanEjercicios } from "../types";
 
 export type MiPerfil = Pick<
@@ -59,20 +60,14 @@ export async function misDocumentos(): Promise<MisDocumentos> {
   return data;
 }
 
-async function abrirPdf(url: string): Promise<void> {
-  const { data } = await api.get(url, { responseType: "blob" });
-  const blobUrl = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-  window.open(blobUrl, "_blank");
-}
-
 export function abrirPdfMiReceta(id: string): Promise<void> {
-  return abrirPdf(`/portal/documentos/recetas/${id}/pdf`);
+  return verPdf(`/portal/documentos/recetas/${id}/pdf`);
 }
 
 export function abrirPdfMiConstancia(id: string): Promise<void> {
-  return abrirPdf(`/portal/documentos/constancias/${id}/pdf`);
+  return verPdf(`/portal/documentos/constancias/${id}/pdf`);
 }
 
 export function abrirPdfMiPlan(id: string): Promise<void> {
-  return abrirPdf(`/portal/documentos/planes-ejercicios/${id}/pdf`);
+  return verPdf(`/portal/documentos/planes-ejercicios/${id}/pdf`);
 }

@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { verPdf } from "./pdf";
 import { PlanEjercicios } from "../types";
 
 export interface ItemPlanEjercicioInput {
@@ -20,8 +21,6 @@ export async function crearPlanEjercicios(
   return data;
 }
 
-export async function abrirPdfPlanEjercicios(id: string): Promise<void> {
-  const { data } = await api.get(`/planes-ejercicios/${id}/pdf`, { responseType: "blob" });
-  const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-  window.open(url, "_blank");
+export function abrirPdfPlanEjercicios(id: string): Promise<void> {
+  return verPdf(`/planes-ejercicios/${id}/pdf`);
 }

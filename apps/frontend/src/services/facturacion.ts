@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { verPdf } from "./pdf";
 import { Factura, Tarifa, Pago } from "../types";
 
 export async function listarTarifas(incluirInactivas = false): Promise<Tarifa[]> {
@@ -94,10 +95,8 @@ export async function anularPago(facturaId: string, pagoId: string, motivo: stri
 }
 
 // Igual que las recetas: el PDF exige el token, así que se baja como blob.
-export async function abrirPdfFactura(id: string): Promise<void> {
-  const { data } = await api.get(`/facturacion/facturas/${id}/pdf`, { responseType: "blob" });
-  const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
-  window.open(url, "_blank");
+export function abrirPdfFactura(id: string): Promise<void> {
+  return verPdf(`/facturacion/facturas/${id}/pdf`);
 }
 
 export async function estadoDeCuenta(pacienteId: string) {

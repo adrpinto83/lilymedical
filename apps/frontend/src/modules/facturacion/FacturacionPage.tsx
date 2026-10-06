@@ -12,6 +12,7 @@ import { getErrorMessage } from "../../services/api";
 import { FacturaFormModal } from "./FacturaFormModal";
 import { FacturaDetalleModal } from "./FacturaDetalleModal";
 import { AseguradorasPanel } from "./AseguradorasPanel";
+import { PresupuestosPanel } from "./PresupuestosPanel";
 import { ESTADO_FACTURA, usd } from "./facturacionUtils";
 
 type Periodo = "mes" | "mesAnterior" | "30" | "90" | "todo";
@@ -41,7 +42,7 @@ function rango(periodo: Periodo): { desde?: string; hasta?: string } {
   }
 }
 
-type Seccion = "facturas" | "aseguradoras";
+type Seccion = "facturas" | "presupuestos" | "aseguradoras";
 
 export function FacturacionPage() {
   const [seccion, setSeccion] = useState<Seccion>("facturas");
@@ -53,6 +54,7 @@ export function FacturacionPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [presupuestoOpen, setPresupuestoOpen] = useState(false);
   const [facturaAbierta, setFacturaAbierta] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,13 +98,25 @@ export function FacturacionPage() {
             .
           </p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>+ Nueva factura</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSeccion("presupuestos");
+              setPresupuestoOpen(true);
+            }}
+          >
+            + Nuevo presupuesto
+          </Button>
+          <Button onClick={() => setModalOpen(true)}>+ Nueva factura</Button>
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
         {(
           [
             ["facturas", "Facturas"],
+            ["presupuestos", "Presupuestos"],
             ["aseguradoras", "Aseguradoras"],
           ] as const
         ).map(([valor, etiqueta]) => (
@@ -122,6 +136,10 @@ export function FacturacionPage() {
       </div>
 
       {seccion === "aseguradoras" && <AseguradorasPanel />}
+
+      {seccion === "presupuestos" && (
+        <PresupuestosPanel nuevoAbierto={presupuestoOpen} onCerrarNuevo={() => setPresupuestoOpen(false)} />
+      )}
 
       {seccion === "facturas" && (
         <>

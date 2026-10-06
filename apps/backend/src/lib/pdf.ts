@@ -345,13 +345,9 @@ export async function dibujarPiePagina(
   }
 }
 
-export function dibujarMembrete(
-  doc: PDFKit.PDFDocument,
-  membrete: Membrete,
-  tituloDocumento: string,
-  numeroDocumento: string,
-  fecha: Date
-) {
+// Logo + "Dra. Nombre Apellido" + título y la línea divisoria (documentos
+// tamaño carta). Deja doc.y debajo de la línea.
+export function dibujarCabeceraMarca(doc: PDFKit.PDFDocument, membrete: Membrete) {
   const logoW = 46;
   dibujarLogo(doc, 50, 40, logoW);
 
@@ -375,6 +371,16 @@ export function dibujarMembrete(
     .moveTo(50, doc.y)
     .lineTo(doc.page.width - doc.page.margins.right, doc.y)
     .stroke();
+}
+
+export function dibujarMembrete(
+  doc: PDFKit.PDFDocument,
+  membrete: Membrete,
+  tituloDocumento: string,
+  numeroDocumento: string,
+  fecha: Date
+) {
+  dibujarCabeceraMarca(doc, membrete);
   doc.moveDown(0.8);
 
   doc.fillColor(INK).fontSize(14).font("Body-Bold").text(tituloDocumento);
