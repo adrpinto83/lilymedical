@@ -48,7 +48,9 @@ export function PacienteDetailPage() {
     ...(puedeGestionar
       ? [
           { key: "seguros" as Tab, label: "Seguros" },
-          { key: "facturacion" as Tab, label: "Facturación" },
+          // Estado de cuenta del paciente: las mismas facturas del módulo
+          // Facturación, filtradas a este paciente, más sus presupuestos.
+          { key: "facturacion" as Tab, label: "Estado de cuenta" },
         ]
       : []),
   ];

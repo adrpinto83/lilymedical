@@ -3,9 +3,11 @@ import { format } from "date-fns";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
-import { EstadoFactura } from "../../types";
+import { EstadoFactura, Presupuesto } from "../../types";
 import { estadoDeCuenta, listarCitasPorFacturar } from "../../services/facturacion";
 import { getErrorMessage } from "../../services/api";
+import { abrirPdfPresupuesto, listarPresupuestos } from "../../services/presupuestos";
+import { PresupuestoFormModal } from "../facturacion/PresupuestoFormModal";
 import { FacturaFormModal } from "../facturacion/FacturaFormModal";
 import { FacturaDetalleModal } from "../facturacion/FacturaDetalleModal";
 import { ESTADO_FACTURA, usd } from "../facturacion/facturacionUtils";
@@ -26,6 +28,8 @@ export function EstadoCuentaPanel({ pacienteId }: { pacienteId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [nuevaOpen, setNuevaOpen] = useState(false);
   const [facturaAbierta, setFacturaAbierta] = useState<string | null>(null);
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+  const [presupuestoOpen, setPresupuestoOpen] = useState(false);
 
   const cargar = useCallback(() => {
     estadoDeCuenta(pacienteId)
@@ -34,7 +38,18 @@ export function EstadoCuentaPanel({ pacienteId }: { pacienteId: string }) {
     listarCitasPorFacturar(pacienteId)
       .then((c) => setPorFacturar(c.length))
       .catch(() => setPorFacturar(0));
+    listarPresupuestos({ pacienteId })
+      .then(setPresupuestos)
+      .catch(() => setPresupuestos([]));
   }, [pacienteId]);
+
+  async function verPresupuesto(id: string) {
+    try {
+      await abrirPdfPresupuesto(id);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
 
   useEffect(() => {
     cargar();
@@ -120,6 +135,48 @@ export function EstadoCuentaPanel({ pacienteId }: { pacienteId: string }) {
         </CardBody>
       </Card>
 
+      <Card>
+        <CardHeader className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-slate-900">Presupuestos</h2>
+          <Button variant="secondary" onClick={() => setPresupuestoOpen(true)}>
+            + Nuevo presupuesto
+          </Button>
+        </CardHeader>
+        <CardBody className="p-0">
+          {presupuestos.length === 0 ? (
+            <p className="p-4 text-sm text-slate-500">Este paciente no tiene presupuestos.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {presupuestos.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className={p.anulado ? "text-slate-400" : undefined}>
+                    <p className="font-medium">
+                      {p.numeroPresupuesto} {p.anulado && <Badge color="red">Anulado</Badge>}
+                      <span className="font-normal text-slate-500"> · {format(new Date(p.fecha), "dd/MM/yyyy")}</span>
+                    </p>
+                    <p className="text-slate-500">
+                      {p.items.map((i) => `${i.cantidad} × ${i.descripcion}`).join(", ")} · {usd(p.total)}
+                    </p>
+                  </div>
+                  <Button variant="ghost" className="shrink-0" onClick={() => verPresupuesto(p.id)}>
+                    Ver PDF
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      <PresupuestoFormModal
+        open={presupuestoOpen}
+        pacienteIdFijo={pacienteId}
+        onClose={() => setPresupuestoOpen(false)}
+        onCreated={(p) => {
+          cargar();
+          verPresupuesto(p.id);
+        }}
+      />
       <FacturaFormModal
         open={nuevaOpen}
         pacienteIdFijo={pacienteId}

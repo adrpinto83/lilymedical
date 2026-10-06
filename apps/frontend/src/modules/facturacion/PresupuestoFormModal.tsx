@@ -24,10 +24,13 @@ export function PresupuestoFormModal({
   open,
   onClose,
   onCreated,
+  pacienteIdFijo,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (presupuesto: Presupuesto) => void;
+  /** Desde el estado de cuenta del paciente: ya viene elegido. */
+  pacienteIdFijo?: string;
 }) {
   const { user } = useAuth();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -45,16 +48,16 @@ export function PresupuestoFormModal({
     if (!open) return;
     listarTarifas().then(setTarifas).catch(() => setTarifas([]));
     setBusqueda("");
-    setPacienteId("");
+    setPacienteId(pacienteIdFijo ?? "");
     setDiagnostico("");
     setTasa(tasaGuardada());
     setLineas([lineaVacia()]);
     setNotas("");
     setError(null);
-  }, [open]);
+  }, [open, pacienteIdFijo]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || pacienteIdFijo) return;
     const t = setTimeout(() => {
       listarPacientes(busqueda || undefined).then((lista) => {
         setPacientes(lista);
@@ -62,7 +65,7 @@ export function PresupuestoFormModal({
       });
     }, 250);
     return () => clearTimeout(t);
-  }, [busqueda, open]);
+  }, [busqueda, open, pacienteIdFijo]);
 
   // El IDX sale de la historia solo si quien emite es el médico (el
   // personal administrativo no ve la historia; lo escribe a mano).
@@ -122,29 +125,31 @@ export function PresupuestoFormModal({
   return (
     <Modal open={open} onClose={onClose} title="Nuevo presupuesto" wide>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div>
-          <Input
-            id="presupuesto-paciente"
-            label="Paciente"
-            placeholder="Buscar por nombre, cédula o teléfono"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-          <Select
-            aria-label="Paciente elegido"
-            className="mt-2"
-            required
-            value={pacienteId}
-            onChange={(e) => setPacienteId(e.target.value)}
-          >
-            <option value="">Selecciona un paciente...</option>
-            {pacientes.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.apellidos}, {p.nombres} · {p.documento}
-              </option>
-            ))}
-          </Select>
-        </div>
+        {!pacienteIdFijo && (
+          <div>
+            <Input
+              id="presupuesto-paciente"
+              label="Paciente"
+              placeholder="Buscar por nombre, cédula o teléfono"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            <Select
+              aria-label="Paciente elegido"
+              className="mt-2"
+              required
+              value={pacienteId}
+              onChange={(e) => setPacienteId(e.target.value)}
+            >
+              <option value="">Selecciona un paciente...</option>
+              {pacientes.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.apellidos}, {p.nombres} · {p.documento}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px]">
           <Input

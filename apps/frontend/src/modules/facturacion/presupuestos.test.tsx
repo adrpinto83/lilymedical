@@ -76,4 +76,16 @@ describe("PresupuestoFormModal", () => {
       )
     );
   });
+
+  it("desde el estado de cuenta el paciente ya viene elegido", async () => {
+    render(<PresupuestoFormModal open pacienteIdFijo="p1" onClose={() => {}} onCreated={() => {}} />);
+    expect(screen.queryByLabelText("Paciente")).toBeNull();
+    expect(pacientes.listarPacientes).not.toHaveBeenCalled();
+    await screen.findByRole("option", { name: /Terapia de rehabilitación/ });
+    fireEvent.change(screen.getByLabelText("Servicio 1"), { target: { value: "t1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Crear presupuesto" }));
+    await waitFor(() =>
+      expect(presupuestos.crearPresupuesto).toHaveBeenCalledWith(expect.objectContaining({ pacienteId: "p1" }))
+    );
+  });
 });
