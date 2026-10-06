@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
 import { validateBody } from "../../middleware/validate";
@@ -8,6 +9,7 @@ import {
   pacienteAseguradoraSchema,
 } from "./pacientes.schema";
 import * as pacientesService from "./pacientes.service";
+import { HttpError } from "../../lib/http-error";
 
 const router = Router();
 
@@ -18,6 +20,24 @@ const router = Router();
 router.use(requireAuth, roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO", "FISIATRA_AYUDANTE"));
 
 const soloGestion = roleGuard("ADMIN", "MEDICO", "ADMINISTRATIVO");
+
+// La foto llega ya recortada y comprimida desde el navegador (JPEG ~512 px).
+const subirFoto = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, pacientesService.fotosDir),
+    filename: (req, file, cb) => {
+      const ext = file.mimetype === "image/png" ? ".png" : file.mimetype === "image/webp" ? ".webp" : ".jpg";
+      cb(null, `${req.params.id}-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
+      return cb(new HttpError(400, "La foto debe ser JPG, PNG o WEBP"));
+    }
+    cb(null, true);
+  },
+});
 
 
 router.get("/", async (req, res) => {
@@ -39,6 +59,23 @@ router.post("/", soloGestion, validateBody(crearPacienteSchema), async (req, res
 router.put("/:id", soloGestion, validateBody(actualizarPacienteSchema), async (req, res) => {
   const paciente = await pacientesService.actualizarPaciente(req.params.id, req.body);
   res.json(paciente);
+});
+
+// ---------- Foto de perfil ----------
+
+router.get("/:id/foto", async (req, res) => {
+  const ruta = await pacientesService.rutaFoto(req.params.id);
+  // Privada: el navegador la puede guardar, pero ningún proxy intermedio.
+  res.sendFile(ruta, { headers: { "Cache-Control": "private, max-age=86400" } });
+});
+
+router.post("/:id/foto", soloGestion, subirFoto.single("foto"), async (req, res) => {
+  if (!req.file) throw new HttpError(400, "No se recibió la foto");
+  res.json(await pacientesService.guardarFoto(req.params.id, req.file.filename));
+});
+
+router.delete("/:id/foto", soloGestion, async (req, res) => {
+  res.json(await pacientesService.quitarFoto(req.params.id));
 });
 
 router.delete("/:id", soloGestion, async (req, res) => {

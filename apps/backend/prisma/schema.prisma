@@ -216,6 +216,9 @@ model Paciente {
   direccion                  String?
   contactoEmergenciaNombre   String?
   contactoEmergenciaTelefono String?
+  // Foto de perfil: nombre del archivo en uploads/fotos-pacientes. Se sirve
+  // solo con sesión iniciada (GET /api/pacientes/:id/foto), nunca pública.
+  fotoUrl                    String?
   activo                     Boolean      @default(true)
   // Año de la última felicitación de cumpleaños enviada por correo: evita
   // repetirla si el job corre varias veces el mismo día.

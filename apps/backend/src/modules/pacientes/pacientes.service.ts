@@ -7,6 +7,45 @@ import {
   PacienteAseguradoraInput,
 } from "./pacientes.schema";
 import * as correos from "../correos/correos.service";
+import { uploadsDir } from "../../lib/uploads";
+import fs from "fs";
+import path from "path";
+
+export const fotosDir = path.join(uploadsDir, "fotos-pacientes");
+if (!fs.existsSync(fotosDir)) fs.mkdirSync(fotosDir, { recursive: true });
+
+function borrarArchivoFoto(nombre: string | null) {
+  if (!nombre) return;
+  const ruta = path.join(fotosDir, path.basename(nombre));
+  if (fs.existsSync(ruta)) fs.unlinkSync(ruta);
+}
+
+/** Guarda la foto subida (ya en disco) y borra la anterior. */
+export async function guardarFoto(pacienteId: string, archivo: string) {
+  const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } });
+  if (!paciente) {
+    borrarArchivoFoto(archivo);
+    throw new HttpError(404, "Paciente no encontrado");
+  }
+  const actualizado = await prisma.paciente.update({ where: { id: pacienteId }, data: { fotoUrl: archivo } });
+  borrarArchivoFoto(paciente.fotoUrl);
+  return actualizado;
+}
+
+export async function quitarFoto(pacienteId: string) {
+  const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } });
+  if (!paciente) throw new HttpError(404, "Paciente no encontrado");
+  const actualizado = await prisma.paciente.update({ where: { id: pacienteId }, data: { fotoUrl: null } });
+  borrarArchivoFoto(paciente.fotoUrl);
+  return actualizado;
+}
+
+export async function rutaFoto(pacienteId: string) {
+  const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId }, select: { fotoUrl: true } });
+  const ruta = paciente?.fotoUrl ? path.join(fotosDir, path.basename(paciente.fotoUrl)) : null;
+  if (!ruta || !fs.existsSync(ruta)) throw new HttpError(404, "El paciente no tiene foto");
+  return ruta;
+}
 
 const includeAseguradoras = {
   aseguradoras: { include: { aseguradora: true }, where: { activo: true } },

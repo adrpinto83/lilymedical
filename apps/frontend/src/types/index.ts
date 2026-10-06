@@ -78,6 +78,7 @@ export interface Paciente {
   email?: string | null;
   instagram?: string | null;
   direccion?: string | null;
+  fotoUrl?: string | null;
   aseguradoras?: PacienteAseguradora[];
   contactoEmergenciaNombre?: string | null;
   contactoEmergenciaTelefono?: string | null;

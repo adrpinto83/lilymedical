@@ -21,6 +21,26 @@ export async function actualizarPaciente(id: string, payload: Partial<Paciente>)
   return data;
 }
 
+// La foto se pide con el token (no es pública) y se muestra como blob.
+export async function obtenerFotoPaciente(id: string): Promise<Blob> {
+  const { data } = await api.get(`/pacientes/${id}/foto`, { responseType: "blob" });
+  return data;
+}
+
+export async function subirFotoPaciente(id: string, foto: Blob): Promise<Paciente> {
+  const formData = new FormData();
+  formData.append("foto", foto, "foto.jpg");
+  const { data } = await api.post<Paciente>(`/pacientes/${id}/foto`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function quitarFotoPaciente(id: string): Promise<Paciente> {
+  const { data } = await api.delete<Paciente>(`/pacientes/${id}/foto`);
+  return data;
+}
+
 export async function desactivarPaciente(id: string): Promise<void> {
   await api.delete(`/pacientes/${id}`);
 }

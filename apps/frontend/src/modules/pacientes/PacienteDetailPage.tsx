@@ -15,6 +15,7 @@ import { AutorizacionesPanel } from "./AutorizacionesPanel";
 import { DocumentosPanel } from "../documentos/DocumentosPanel";
 import { differenceInYears, format } from "date-fns";
 import { enlaceWhatsApp } from "../agenda/agendaUtils";
+import { PacienteFoto } from "./PacienteFoto";
 
 const SEXO_LABEL = { MASCULINO: "Masculino", FEMENINO: "Femenino", OTRO: "Otro" } as const;
 
@@ -60,31 +61,38 @@ export function PacienteDetailPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link to="/pacientes" className="text-xs text-lily-blue-600 hover:underline">
-            ← Volver a pacientes
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900">
-            {paciente.apellidos}, {paciente.nombres}
-          </h1>
-          <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
-            <span>C.I. {paciente.documento}</span>
-            <span>·</span>
-            <span>
-              {edad} años ({format(new Date(paciente.fechaNacimiento), "dd/MM/yyyy")})
-            </span>
-            <span>·</span>
-            <span>{SEXO_LABEL[paciente.sexo]}</span>
-            <span>·</span>
-            <a href={`tel:${paciente.telefono}`} className="hover:underline">
-              {paciente.telefono}
-            </a>
-            {whatsapp && (
-              <a href={whatsapp} target="_blank" rel="noreferrer" className="text-lily-green-700 hover:underline">
-                WhatsApp
+        <div className="flex items-center gap-4">
+          <PacienteFoto
+            paciente={paciente}
+            editable={puedeGestionar}
+            onCambio={(p) => setPaciente((actual) => actual && { ...actual, fotoUrl: p.fotoUrl })}
+          />
+          <div>
+            <Link to="/pacientes" className="text-xs text-lily-blue-600 hover:underline">
+              ← Volver a pacientes
+            </Link>
+            <h1 className="mt-1 text-xl font-semibold text-slate-900">
+              {paciente.apellidos}, {paciente.nombres}
+            </h1>
+            <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-500">
+              <span>C.I. {paciente.documento}</span>
+              <span>·</span>
+              <span>
+                {edad} años ({format(new Date(paciente.fechaNacimiento), "dd/MM/yyyy")})
+              </span>
+              <span>·</span>
+              <span>{SEXO_LABEL[paciente.sexo]}</span>
+              <span>·</span>
+              <a href={`tel:${paciente.telefono}`} className="hover:underline">
+                {paciente.telefono}
               </a>
-            )}
-          </p>
+              {whatsapp && (
+                <a href={whatsapp} target="_blank" rel="noreferrer" className="text-lily-green-700 hover:underline">
+                  WhatsApp
+                </a>
+              )}
+            </p>
+          </div>
         </div>
         {puedeGestionar && (
           <Button variant="secondary" onClick={() => setEditOpen(true)}>
