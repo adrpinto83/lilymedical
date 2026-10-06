@@ -5,10 +5,10 @@ import { validateBody } from "../../middleware/validate";
 import { auditLog } from "../../middleware/auditLog";
 import { actualizarHistoriaSchema, crearEvaluacionSchema } from "./historias-clinicas.schema";
 import * as historiasService from "./historias-clinicas.service";
-import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
+import { crearDocumentoPdf, enviarPdfComoRespuesta, fechaConsultorio } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
 import { obtenerMedicoTitular } from "../correos/correos.service";
-import { generarHistoriaClinicaPdf } from "./historias-clinicas.pdf";
+import { generarHistoriaClinicaPdf, generarInformeConsultaPdf } from "./historias-clinicas.pdf";
 import { HttpError } from "../../lib/http-error";
 
 // Parsea un input tipo "YYYY-MM-DD" (date input del frontend) como día
@@ -68,6 +68,26 @@ router.get("/paciente/:pacienteId/pdf", auditLog("VER"), async (req, res) => {
   const doc = crearDocumentoPdf("CARTA", { bufferPages: true });
   enviarPdfComoRespuesta(doc, res, `historia-clinica-${historia.paciente.documento}.pdf`);
   await generarHistoriaClinicaPdf(doc, historia, membrete, { desde, hasta });
+  doc.end();
+});
+
+// Informe de una sola consulta (lo registrado ese día), para entregarle al
+// paciente sin darle la historia completa. ?sesionId= o ?evaluacionId=.
+router.get("/paciente/:pacienteId/consulta/pdf", auditLog("VER"), async (req, res) => {
+  const sesionId = typeof req.query.sesionId === "string" ? req.query.sesionId : undefined;
+  const evaluacionId = typeof req.query.evaluacionId === "string" ? req.query.evaluacionId : undefined;
+  if (!sesionId === !evaluacionId) throw new HttpError(400, "Indica una sesión o una evaluación");
+
+  const consulta = await historiasService.obtenerConsultaParaPdf(
+    req.params.pacienteId,
+    sesionId ? { tipo: "sesion", id: sesionId } : { tipo: "evaluacion", id: evaluacionId! }
+  );
+  const medicoId = req.user!.rol === "MEDICO" ? req.user!.sub : (await obtenerMedicoTitular()).id;
+  const membrete = await construirMembrete(medicoId);
+  const doc = crearDocumentoPdf("CARTA", { bufferPages: true });
+  const dia = fechaConsultorio(consulta.fecha).split("/").reverse().join("-");
+  enviarPdfComoRespuesta(doc, res, `informe-consulta-${consulta.paciente.documento}-${dia}.pdf`);
+  await generarInformeConsultaPdf(doc, consulta, membrete);
   doc.end();
 });
 

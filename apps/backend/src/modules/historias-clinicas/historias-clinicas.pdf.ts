@@ -2,11 +2,15 @@ import fs from "fs";
 import { Adjunto, EvaluacionFisiatrica, HistoriaClinica, Paciente, Sesion } from "@prisma/client";
 import { dibujarMembrete, dibujarPiePagina, fechaConsultorio, Membrete } from "../../lib/pdf";
 import { rutaAbsolutaAdjunto } from "../../lib/uploads";
+import type { ConsultaParaPdf } from "./historias-clinicas.service";
+
+type EvaluacionConEvaluador = EvaluacionFisiatrica & { evaluador: { nombre: string; apellido: string } };
+type SesionConTerapeuta = Sesion & { terapeuta: { nombre: string; apellido: string } };
 
 type HistoriaConDetalle = HistoriaClinica & {
   paciente: Paciente;
-  evaluaciones: (EvaluacionFisiatrica & { evaluador: { nombre: string; apellido: string } })[];
-  sesiones: (Sesion & { terapeuta: { nombre: string; apellido: string } })[];
+  evaluaciones: EvaluacionConEvaluador[];
+  sesiones: SesionConTerapeuta[];
   adjuntos?: Adjunto[];
 };
 
@@ -108,6 +112,8 @@ const DOMINANCIA_LABEL: Record<string, string> = {
 
 const SEXO_LABEL: Record<string, string> = { FEMENINO: "Femenino", MASCULINO: "Masculino", OTRO: "Otro" };
 
+const ASISTENCIA_LABEL: Record<string, string> = { ASISTIO: "Asistió", INASISTIO: "No asistió", CANCELO: "Canceló" };
+
 const LADO_LABEL: Record<string, string> = { D: "der.", I: "izq." };
 
 // Líneas de detalle de una evaluación estructurada (ver escalas.ts del
@@ -162,21 +168,58 @@ function campo(doc: PDFKit.PDFDocument, etiqueta: string, valor?: string | null)
   doc.moveDown(0.5);
 }
 
-export async function generarHistoriaClinicaPdf(
-  doc: PDFKit.PDFDocument,
-  historia: HistoriaConDetalle,
-  membrete: Membrete,
-  opciones: OpcionesPdfHistoria = {}
-) {
-  const p = historia.paciente;
-  dibujarMembrete(doc, membrete, "Historia fisiátrica", p.documento, new Date());
+function escribirEvaluacion(doc: PDFKit.PDFDocument, ev: EvaluacionConEvaluador, encabezado: string) {
+  if (doc.y > 700) doc.addPage();
+  doc
+    .font("Body-Bold")
+    .fillColor(INK)
+    .fontSize(9.5)
+    .text(
+      `${encabezado} · ${ESCALA_LABEL[ev.tipoEscala] ?? ev.tipoEscala}` +
+        (ev.puntajeTotal !== null ? `: ${ev.puntajeTotal}` : ""),
+      { continued: false }
+    );
+  for (const linea of detalleEvaluacion(ev.datos)) {
+    doc.font("Body").fillColor(GRIS).fontSize(8.5).text(linea);
+  }
+  if (ev.observaciones) {
+    doc.font("Body").fillColor(GRIS).fontSize(9).text(ev.observaciones);
+  }
+  doc.moveDown(0.4);
+}
 
+function escribirSesion(doc: PDFKit.PDFDocument, s: SesionConTerapeuta, encabezado: string) {
+  if (doc.y > 690) doc.addPage();
+  doc.font("Body-Bold").fillColor(INK).fontSize(9.5).text(encabezado);
+  const eva =
+    s.evaPre !== null || s.evaPost !== null
+      ? `EVA al llegar ${s.evaPre ?? "—"} · al salir ${s.evaPost ?? "—"}`
+      : null;
+  if (eva || s.modalidades.length > 0) {
+    doc
+      .font("Body")
+      .fillColor(SAGE)
+      .fontSize(8.5)
+      .text([eva, s.modalidades.join(", ")].filter(Boolean).join(" · "));
+  }
+  doc.font("Body").fillColor(GRIS).fontSize(9).text(s.notaEvolucion, { align: "justify" });
+  if (s.tratamientoAplicado) {
+    doc
+      .font("Body-Italic")
+      .fillColor(GRIS)
+      .fontSize(8.5)
+      .text(`Tratamiento: ${s.tratamientoAplicado}`);
+  }
+  doc.moveDown(0.5);
+}
+
+// Nombre, C.I., edad, sexo y contacto: igual que la hoja de papel.
+function escribirIdentificacion(doc: PDFKit.PDFDocument, p: Paciente, ocupacion?: string | null) {
   doc
     .font("Body-Bold")
     .fillColor(INK)
     .fontSize(11)
     .text(`${p.apellidos}, ${p.nombres}`);
-  // Mismos datos de identificación que la hoja de papel de la consulta.
   const fechaNac = `${String(p.fechaNacimiento.getUTCDate()).padStart(2, "0")}/${String(
     p.fechaNacimiento.getUTCMonth() + 1
   ).padStart(2, "0")}/${p.fechaNacimiento.getUTCFullYear()}`;
@@ -184,7 +227,7 @@ export async function generarHistoriaClinicaPdf(
     `C.I. ${p.documento}`,
     `${calcularEdad(p.fechaNacimiento)} años (nac. ${fechaNac})`,
     SEXO_LABEL[p.sexo] ?? p.sexo,
-    historia.ocupacion ? `Ocupación: ${historia.ocupacion}` : null,
+    ocupacion ? `Ocupación: ${ocupacion}` : null,
   ];
   const contacto = [
     `Tel. ${p.telefono}`,
@@ -194,6 +237,18 @@ export async function generarHistoriaClinicaPdf(
   ];
   doc.font("Body").fillColor(GRIS).fontSize(9.5).text(identificacion.filter(Boolean).join(" · "));
   doc.text(contacto.filter(Boolean).join(" · "));
+}
+
+export async function generarHistoriaClinicaPdf(
+  doc: PDFKit.PDFDocument,
+  historia: HistoriaConDetalle,
+  membrete: Membrete,
+  opciones: OpcionesPdfHistoria = {}
+) {
+  const p = historia.paciente;
+  dibujarMembrete(doc, membrete, "Historia fisiátrica", p.documento, new Date());
+
+  escribirIdentificacion(doc, p, historia.ocupacion);
   if (historia.fechaConsulta) {
     doc.text(`Fecha de la historia: ${historia.fechaConsulta.toLocaleDateString("es-VE", { timeZone: "UTC" })}`);
   }
@@ -242,25 +297,7 @@ export async function generarHistoriaClinicaPdf(
 
   if (historia.evaluaciones.length > 0) {
     seccion(doc, "Evaluaciones fisiátricas");
-    for (const ev of historia.evaluaciones) {
-      if (doc.y > 700) doc.addPage();
-      doc
-        .font("Body-Bold")
-        .fillColor(INK)
-        .fontSize(9.5)
-        .text(
-          `${fechaConsultorio(ev.fecha)} · ${ESCALA_LABEL[ev.tipoEscala] ?? ev.tipoEscala}` +
-            (ev.puntajeTotal !== null ? `: ${ev.puntajeTotal}` : ""),
-          { continued: false }
-        );
-      for (const linea of detalleEvaluacion(ev.datos)) {
-        doc.font("Body").fillColor(GRIS).fontSize(8.5).text(linea);
-      }
-      if (ev.observaciones) {
-        doc.font("Body").fillColor(GRIS).fontSize(9).text(ev.observaciones);
-      }
-      doc.moveDown(0.4);
-    }
+    for (const ev of historia.evaluaciones) escribirEvaluacion(doc, ev, fechaConsultorio(ev.fecha));
   }
 
   // Agrupa evaluaciones con puntaje numérico por escala (EVA, Barthel,
@@ -285,34 +322,7 @@ export async function generarHistoriaClinicaPdf(
   if (historia.sesiones.length > 0) {
     seccion(doc, "Notas de evolución por sesión");
     for (const s of historia.sesiones) {
-      if (doc.y > 690) doc.addPage();
-      doc
-        .font("Body-Bold")
-        .fillColor(INK)
-        .fontSize(9.5)
-        .text(
-          `${fechaConsultorio(s.fecha)} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}`
-        );
-      const eva =
-        s.evaPre !== null || s.evaPost !== null
-          ? `EVA al llegar ${s.evaPre ?? "—"} · al salir ${s.evaPost ?? "—"}`
-          : null;
-      if (eva || s.modalidades.length > 0) {
-        doc
-          .font("Body")
-          .fillColor(SAGE)
-          .fontSize(8.5)
-          .text([eva, s.modalidades.join(", ")].filter(Boolean).join(" · "));
-      }
-      doc.font("Body").fillColor(GRIS).fontSize(9).text(s.notaEvolucion, { align: "justify" });
-      if (s.tratamientoAplicado) {
-        doc
-          .font("Body-Italic")
-          .fillColor(GRIS)
-          .fontSize(8.5)
-          .text(`Tratamiento: ${s.tratamientoAplicado}`);
-      }
-      doc.moveDown(0.5);
+      escribirSesion(doc, s, `${fechaConsultorio(s.fecha)} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}`);
     }
   }
 
@@ -369,4 +379,54 @@ function numerarPaginas(doc: PDFKit.PDFDocument, identificacion: string) {
     doc.text(`Página ${i - start + 1} de ${count}`, 432, y, { width: 130, align: "right", lineBreak: false });
     doc.page.margins.bottom = margenInferior;
   }
+}
+
+const HORA_CONSULTORIO = { hour: "2-digit", minute: "2-digit", timeZone: process.env.ZONA_HORARIA || "America/Caracas" } as const;
+
+/**
+ * Informe de una sola consulta, para entregar al paciente: identificación,
+ * diagnóstico y lo registrado ese día. No incluye antecedentes, examen ni
+ * el resto de la historia.
+ */
+export async function generarInformeConsultaPdf(
+  doc: PDFKit.PDFDocument,
+  consulta: ConsultaParaPdf,
+  membrete: Membrete
+) {
+  const p = consulta.paciente;
+  dibujarMembrete(doc, membrete, "Informe de consulta", p.documento, consulta.fecha);
+  escribirIdentificacion(doc, p, consulta.ocupacion);
+  doc.text(`Fecha de la consulta: ${fechaConsultorio(consulta.fecha)}`);
+  doc.moveDown(0.8);
+
+  if (consulta.diagnosticoPrincipal) {
+    seccion(doc, "Diagnóstico");
+    campo(
+      doc,
+      "IDX",
+      `${consulta.diagnosticoPrincipal}${consulta.codigoCIE10 ? ` (CIE-10: ${consulta.codigoCIE10})` : ""}`
+    );
+  }
+
+  const hora = (fecha: Date) => fecha.toLocaleTimeString("es-VE", HORA_CONSULTORIO);
+
+  if (consulta.evaluaciones.length > 0) {
+    seccion(doc, consulta.evaluaciones.length === 1 ? "Evaluación" : "Evaluaciones");
+    for (const ev of consulta.evaluaciones) escribirEvaluacion(doc, ev, hora(ev.fecha));
+  }
+
+  if (consulta.sesiones.length > 0) {
+    seccion(doc, consulta.sesiones.length === 1 ? "Nota de evolución" : "Notas de evolución");
+    for (const s of consulta.sesiones) {
+      const asistencia = s.asistencia === "ASISTIO" ? "" : ` · ${ASISTENCIA_LABEL[s.asistencia] ?? s.asistencia}`;
+      escribirSesion(doc, s, `${hora(s.fecha)} · ${s.terapeuta.nombre} ${s.terapeuta.apellido}${asistencia}`);
+    }
+  }
+
+  doc.moveDown(1.5);
+  await dibujarPiePagina(doc, membrete);
+  numerarPaginas(
+    doc,
+    `Informe de consulta del ${fechaConsultorio(consulta.fecha)} · ${p.apellidos}, ${p.nombres} · C.I. ${p.documento}`
+  );
 }

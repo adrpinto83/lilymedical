@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { HttpError } from "../../lib/http-error";
+import { fechaConsultorio } from "../../lib/pdf";
 import { ActualizarHistoriaInput, CrearEvaluacionInput } from "./historias-clinicas.schema";
 
 export async function obtenerHistoriaPorPaciente(pacienteId: string) {
@@ -53,6 +54,65 @@ export async function obtenerHistoriaParaPdf(
   if (!historia) throw new HttpError(404, "Historia clínica no encontrada");
   return historia;
 }
+
+/**
+ * Datos del informe de UNA consulta: lo registrado el mismo día (hora del
+ * consultorio) que la sesión o evaluación elegida, más identificación y
+ * diagnóstico. Es lo que se le entrega al paciente; los antecedentes y el
+ * resto de la historia quedan fuera.
+ */
+export async function obtenerConsultaParaPdf(
+  pacienteId: string,
+  referencia: { tipo: "sesion" | "evaluacion"; id: string }
+) {
+  const historia = await prisma.historiaClinica.findUnique({
+    where: { pacienteId },
+    include: { paciente: true },
+  });
+  if (!historia) throw new HttpError(404, "Historia clínica no encontrada");
+
+  const registro =
+    referencia.tipo === "sesion"
+      ? await prisma.sesion.findFirst({ where: { id: referencia.id, historiaClinicaId: historia.id } })
+      : await prisma.evaluacionFisiatrica.findFirst({ where: { id: referencia.id, historiaClinicaId: historia.id } });
+  if (!registro) throw new HttpError(404, "Consulta no encontrada");
+
+  // Margen amplio en la consulta y filtro exacto por día del consultorio
+  // (el servidor puede estar en UTC).
+  const dia = fechaConsultorio(registro.fecha);
+  const margen = 36 * 60 * 60 * 1000;
+  const rango = {
+    historiaClinicaId: historia.id,
+    fecha: { gte: new Date(registro.fecha.getTime() - margen), lte: new Date(registro.fecha.getTime() + margen) },
+  };
+  const [sesiones, evaluaciones] = await Promise.all([
+    prisma.sesion.findMany({
+      where: rango,
+      orderBy: { fecha: "asc" },
+      include: { terapeuta: { select: { nombre: true, apellido: true } } },
+    }),
+    prisma.evaluacionFisiatrica.findMany({
+      where: rango,
+      orderBy: { fecha: "asc" },
+      include: { evaluador: { select: { nombre: true, apellido: true } } },
+    }),
+  ]);
+
+  return {
+    paciente: historia.paciente,
+    ocupacion: historia.ocupacion,
+    diagnosticoPrincipal: historia.diagnosticoPrincipal,
+    codigoCIE10: historia.codigoCIE10,
+    fecha: registro.fecha,
+    // Las inasistencias no son parte de la consulta, salvo que sea justo la elegida.
+    sesiones: sesiones.filter(
+      (s) => fechaConsultorio(s.fecha) === dia && (s.asistencia === "ASISTIO" || s.id === referencia.id)
+    ),
+    evaluaciones: evaluaciones.filter((e) => fechaConsultorio(e.fecha) === dia),
+  };
+}
+
+export type ConsultaParaPdf = Awaited<ReturnType<typeof obtenerConsultaParaPdf>>;
 
 export async function actualizarHistoria(pacienteId: string, data: ActualizarHistoriaInput) {
   const historia = await prisma.historiaClinica.findUnique({ where: { pacienteId } });

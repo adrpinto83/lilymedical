@@ -45,35 +45,32 @@ export interface OpcionesExportarHistoria {
   incluirImagenes?: boolean;
 }
 
-async function descargarPdfHistoria(pacienteId: string, opciones?: OpcionesExportarHistoria): Promise<string> {
+async function descargarPdf(ruta: string, params: Record<string, string>): Promise<string> {
+  const { data } = await api.get(ruta, { responseType: "blob", params });
+  return URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+}
+
+function paramsHistoria(opciones?: OpcionesExportarHistoria): Record<string, string> {
   const params: Record<string, string> = {};
   if (opciones?.desde) params.desde = opciones.desde;
   if (opciones?.hasta) params.hasta = opciones.hasta;
   if (opciones?.incluirImagenes) params.incluirImagenes = "true";
-
-  const { data } = await api.get(`/historias-clinicas/paciente/${pacienteId}/pdf`, {
-    responseType: "blob",
-    params,
-  });
-  return URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+  return params;
 }
 
 // La pestaña se abre antes de esperar al servidor: si se abre después, los
 // bloqueadores de ventanas emergentes (sobre todo en Safari/iPhone) la frenan.
-export async function abrirPdfHistoriaClinica(
-  pacienteId: string,
-  opciones?: OpcionesExportarHistoria
-): Promise<void> {
+async function abrirPdf(obtenerUrl: () => Promise<string>, nombreArchivo: string): Promise<void> {
   const ventana = window.open("", "_blank");
   try {
-    const url = await descargarPdfHistoria(pacienteId, opciones);
+    const url = await obtenerUrl();
     if (ventana) {
       ventana.location.href = url;
     } else {
       // Ventanas emergentes bloqueadas: se descarga en vez de salir de la app.
       const enlace = document.createElement("a");
       enlace.href = url;
-      enlace.download = "historia-clinica.pdf";
+      enlace.download = nombreArchivo;
       enlace.click();
     }
   } catch (err) {
@@ -83,18 +80,15 @@ export async function abrirPdfHistoriaClinica(
 }
 
 /**
- * Abre directamente el diálogo de impresión con el PDF de la historia. En
- * teléfonos y tabletas (donde imprimir un PDF incrustado no funciona) abre
- * el PDF para imprimirlo desde el visor.
+ * Abre directamente el diálogo de impresión con el PDF. En teléfonos y
+ * tabletas (donde imprimir un PDF incrustado no funciona) abre el PDF para
+ * imprimirlo desde el visor.
  */
-export async function imprimirPdfHistoriaClinica(
-  pacienteId: string,
-  opciones?: OpcionesExportarHistoria
-): Promise<void> {
+async function imprimirPdf(obtenerUrl: () => Promise<string>, nombreArchivo: string): Promise<void> {
   if (window.matchMedia?.("(pointer: coarse)").matches) {
-    return abrirPdfHistoriaClinica(pacienteId, opciones);
+    return abrirPdf(obtenerUrl, nombreArchivo);
   }
-  const url = await descargarPdfHistoria(pacienteId, opciones);
+  const url = await obtenerUrl();
   const marco = document.createElement("iframe");
   marco.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
   marco.src = url;
@@ -115,4 +109,28 @@ export async function imprimirPdfHistoriaClinica(
   });
   // El diálogo de impresión necesita el marco vivo mientras está abierto.
   setTimeout(() => marco.remove(), 60_000);
+}
+
+export function abrirPdfHistoriaClinica(pacienteId: string, opciones?: OpcionesExportarHistoria): Promise<void> {
+  return abrirPdf(
+    () => descargarPdf(`/historias-clinicas/paciente/${pacienteId}/pdf`, paramsHistoria(opciones)),
+    "historia-clinica.pdf"
+  );
+}
+
+export function imprimirPdfHistoriaClinica(pacienteId: string, opciones?: OpcionesExportarHistoria): Promise<void> {
+  return imprimirPdf(
+    () => descargarPdf(`/historias-clinicas/paciente/${pacienteId}/pdf`, paramsHistoria(opciones)),
+    "historia-clinica.pdf"
+  );
+}
+
+export type ReferenciaConsulta = { sesionId: string } | { evaluacionId: string };
+
+/** Informe de una sola consulta (lo registrado ese día), para el paciente. */
+export function imprimirInformeConsulta(pacienteId: string, referencia: ReferenciaConsulta): Promise<void> {
+  return imprimirPdf(
+    () => descargarPdf(`/historias-clinicas/paciente/${pacienteId}/consulta/pdf`, { ...referencia }),
+    "informe-consulta.pdf"
+  );
 }

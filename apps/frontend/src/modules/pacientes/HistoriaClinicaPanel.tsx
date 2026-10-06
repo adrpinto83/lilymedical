@@ -5,7 +5,7 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { BodyDiagram, PuntoDolor } from "../../components/clinical/BodyDiagram";
 import { EvaluacionFisiatrica, HistoriaClinica, Sesion } from "../../types";
-import { obtenerHistoriaPorPaciente } from "../../services/historiasClinicas";
+import { imprimirInformeConsulta, obtenerHistoriaPorPaciente, ReferenciaConsulta } from "../../services/historiasClinicas";
 import { getErrorMessage } from "../../services/api";
 import { format } from "date-fns";
 import { EvaluacionForm } from "./fisiatria/EvaluacionForm";
@@ -42,6 +42,8 @@ export function HistoriaClinicaPanel({
   const [imprimirAbierto, setImprimirAbierto] = useState(false);
   const [formulario, setFormulario] = useState<"sesion" | "evaluacion">("sesion");
   const [filtro, setFiltro] = useState<Filtro>("todo");
+  const [imprimiendoId, setImprimiendoId] = useState<string | null>(null);
+  const [errorInforme, setErrorInforme] = useState<string | null>(null);
 
   async function cargar() {
     setError(null);
@@ -52,6 +54,18 @@ export function HistoriaClinicaPanel({
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function imprimirConsulta(id: string, referencia: ReferenciaConsulta) {
+    setImprimiendoId(id);
+    setErrorInforme(null);
+    try {
+      await imprimirInformeConsulta(pacienteId, referencia);
+    } catch (err) {
+      setErrorInforme(getErrorMessage(err));
+    } finally {
+      setImprimiendoId(null);
     }
   }
 
@@ -280,6 +294,7 @@ export function HistoriaClinicaPanel({
           </div>
         </CardHeader>
         <CardBody>
+          {errorInforme && <p className="mb-3 text-sm text-red-600">{errorInforme}</p>}
           {eventos.length === 0 ? (
             <p className="text-sm text-slate-500">Aún no hay registros.</p>
           ) : (
@@ -292,7 +307,19 @@ export function HistoriaClinicaPanel({
                       ev.tipo === "SESION" ? "bg-lily-green-500" : "bg-lily-blue-500"
                     )}
                   />
-                  {ev.tipo === "SESION" ? <ItemSesion s={ev.data} /> : <ItemEvaluacion e={ev.data} />}
+                  {ev.tipo === "SESION" ? (
+                    <ItemSesion
+                      s={ev.data}
+                      imprimiendo={imprimiendoId === ev.data.id}
+                      onImprimir={() => imprimirConsulta(ev.data.id, { sesionId: ev.data.id })}
+                    />
+                  ) : (
+                    <ItemEvaluacion
+                      e={ev.data}
+                      imprimiendo={imprimiendoId === ev.data.id}
+                      onImprimir={() => imprimirConsulta(ev.data.id, { evaluacionId: ev.data.id })}
+                    />
+                  )}
                 </li>
               ))}
             </ol>
@@ -350,11 +377,13 @@ function Encabezado({
   badge,
   color,
   quien,
+  imprimir,
 }: {
   fecha: string;
   badge: string;
   color: "green" | "blue" | "amber" | "slate";
   quien?: { nombre: string; apellido: string };
+  imprimir?: Imprimir;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -365,11 +394,29 @@ function Encabezado({
           {quien.nombre} {quien.apellido}
         </span>
       )}
+      {imprimir && (
+        <button
+          type="button"
+          onClick={imprimir.onImprimir}
+          disabled={imprimir.imprimiendo}
+          title="Imprimir el informe de esta consulta (solo lo registrado ese día)"
+          className="ml-auto rounded-md px-2 py-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
+        >
+          {imprimir.imprimiendo ? "Preparando..." : "🖨 Informe"}
+        </button>
+      )}
     </div>
   );
 }
 
-function ItemSesion({ s }: { s: Sesion }) {
+// Imprime el informe de la consulta de ese día: es lo que se le entrega al
+// paciente, sin el resto de la historia.
+interface Imprimir {
+  onImprimir: () => void;
+  imprimiendo: boolean;
+}
+
+function ItemSesion({ s, ...imprimir }: { s: Sesion } & Imprimir) {
   const asistio = s.asistencia === "ASISTIO";
   return (
     <div>
@@ -378,6 +425,7 @@ function ItemSesion({ s }: { s: Sesion }) {
         badge={asistio ? "Sesión" : ASISTENCIA_LABEL[s.asistencia]}
         color={asistio ? "green" : "amber"}
         quien={s.terapeuta}
+        imprimir={asistio ? imprimir : undefined}
       />
       <div className="mt-1 flex flex-col gap-1 text-sm text-slate-800">
         {(s.evaPre != null || s.evaPost != null) && (
@@ -422,13 +470,13 @@ interface DatosEvaluacion {
   }>;
 }
 
-function ItemEvaluacion({ e }: { e: EvaluacionFisiatrica }) {
+function ItemEvaluacion({ e, ...imprimir }: { e: EvaluacionFisiatrica } & Imprimir) {
   const d = (e.datos ?? {}) as DatosEvaluacion;
   const sufijo = e.tipoEscala === "OSWESTRY" ? "%" : e.tipoEscala === "EVA" ? "/10" : e.tipoEscala === "BARTHEL" ? "/100" : "";
   const items = e.tipoEscala === "BARTHEL" ? BARTHEL : e.tipoEscala === "OSWESTRY" ? OSWESTRY : null;
   return (
     <div>
-      <Encabezado fecha={e.fecha} badge="Evaluación" color="blue" quien={e.evaluador} />
+      <Encabezado fecha={e.fecha} badge="Evaluación" color="blue" quien={e.evaluador} imprimir={imprimir} />
       <div className="mt-1 flex flex-col gap-1 text-sm text-slate-800">
         <p>
           <span className="font-medium">{etiquetaEscala(e.tipoEscala, e.nombreEscala)}</span>

@@ -167,4 +167,16 @@ describe("HistoriaClinicaPanel", () => {
       })
     );
   });
+
+  it("imprime el informe de una sola consulta desde la línea de tiempo", async () => {
+    vi.mocked(historias.imprimirInformeConsulta).mockResolvedValue();
+    render(<HistoriaClinicaPanel pacienteId="p1" puedeEditar={false} />);
+    // Orden de la línea de tiempo: s2 (08/09), s1 y e1 (01/09).
+    const botones = await screen.findAllByRole("button", { name: "🖨 Informe" });
+    expect(botones).toHaveLength(3);
+    fireEvent.click(botones[0]);
+    await waitFor(() => expect(historias.imprimirInformeConsulta).toHaveBeenCalledWith("p1", { sesionId: "s2" }));
+    fireEvent.click(botones[2]);
+    await waitFor(() => expect(historias.imprimirInformeConsulta).toHaveBeenCalledWith("p1", { evaluacionId: "e1" }));
+  });
 });
