@@ -92,11 +92,16 @@ export function AdjuntosPanel({ pacienteId }: { pacienteId: string }) {
       setLightbox(miniaturas[adjunto.id]);
       return;
     }
+    // La pestaña se abre antes de esperar al servidor: si se abre después, el
+    // bloqueador de ventanas emergentes (Firefox, Safari) la frena.
+    const ventana = window.open("", "_blank");
     try {
       const blob = await obtenerArchivoAdjunto(adjunto.id);
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      if (ventana) ventana.location.href = url;
+      else window.open(url, "_blank");
     } catch (err) {
+      ventana?.close();
       setError(getErrorMessage(err));
     }
   }

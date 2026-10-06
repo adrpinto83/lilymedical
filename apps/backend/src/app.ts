@@ -41,7 +41,19 @@ export function createApp() {
   // real. Confiar solo en loopback toma la IP que agrega el proxy local.
   app.set("trust proxy", process.env.TRUST_PROXY || "loopback");
 
-  app.use(helmet());
+  // Las miniaturas de estudios y los PDF a imprimir se muestran desde URLs
+  // blob: (se bajan con el token y no por enlace directo): sin permitirlas,
+  // el navegador las bloquea y las imágenes no se ven.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          "img-src": ["'self'", "data:", "blob:"],
+          "frame-src": ["'self'", "blob:"],
+        },
+      },
+    })
+  );
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN?.split(",") ?? "*",
