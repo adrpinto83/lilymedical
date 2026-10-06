@@ -24,6 +24,7 @@ const METODO: Record<string, string> = {
   TRANSFERENCIA: "Transferencia",
   PAGO_MOVIL: "Pago móvil",
   ZELLE: "Zelle",
+  CASHEA: "Cashea",
 };
 
 const bs = (d: Prisma.Decimal) =>

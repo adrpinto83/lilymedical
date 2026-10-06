@@ -387,11 +387,24 @@ function FormularioPago({ factura, saldo, onPagado }: { factura: Factura; saldo:
         )}
       </div>
 
+      {metodoPago === "CASHEA" && (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Registra aquí solo la parte que financia Cashea (la que Cashea le paga al consultorio). La inicial que
+          pagó el paciente regístrala aparte, con el método con que la pagó (pago móvil, efectivo...).
+        </p>
+      )}
+
       {metodo.pideReferencia && (
         <Input
           id="pago-referencia"
-          label="Referencia"
-          placeholder={metodoPago === "PAGO_MOVIL" ? "Últimos dígitos de la operación" : "N° de operación o comprobante"}
+          label={metodoPago === "CASHEA" ? "N° de orden Cashea" : "Referencia"}
+          placeholder={
+            metodoPago === "PAGO_MOVIL"
+              ? "Últimos dígitos de la operación"
+              : metodoPago === "CASHEA"
+                ? "Número de la orden en Cashea"
+                : "N° de operación o comprobante"
+          }
           value={referencia}
           onChange={(e) => setReferencia(e.target.value)}
         />

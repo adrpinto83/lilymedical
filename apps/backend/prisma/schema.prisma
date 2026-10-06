@@ -75,6 +75,9 @@ enum MetodoPago {
   TRANSFERENCIA
   PAGO_MOVIL
   ZELLE
+  // Compra financiada por Cashea: el paciente paga la inicial al consultorio
+  // (con otro método) y Cashea liquida el resto semanalmente.
+  CASHEA
 }
 
 enum TipoMovimientoInsumo {

@@ -6,6 +6,7 @@ export const METODO_PAGO: Record<MetodoPago, { label: string; enBs: boolean; pid
   TRANSFERENCIA: { label: "Transferencia", enBs: false, pideReferencia: true },
   TARJETA: { label: "Tarjeta (punto de venta)", enBs: false, pideReferencia: true },
   ZELLE: { label: "Zelle", enBs: false, pideReferencia: true },
+  CASHEA: { label: "Cashea (financiado)", enBs: false, pideReferencia: true },
   SEGURO: { label: "Seguro", enBs: false, pideReferencia: true },
 };
 

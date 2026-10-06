@@ -114,4 +114,37 @@ describe("FacturaDetalleModal", () => {
       })
     );
   });
+
+  it("registra la parte financiada por Cashea con el número de orden", async () => {
+    vi.mocked(facturacion.obtenerFactura).mockResolvedValue({
+      id: "f2",
+      numeroFactura: "LM-2026-00011",
+      pacienteId: "p1",
+      paciente: { nombres: "Ana", apellidos: "Rojas", documento: "V-123" },
+      fecha: "2026-10-06T10:00:00",
+      subtotal: "100.00",
+      impuestos: "0.00",
+      total: "100.00",
+      estado: "PARCIAL",
+      montoPaciente: "100.00",
+      pagado: "40",
+      saldo: "60",
+      detalles: [],
+      pagos: [],
+    } as Factura);
+    vi.mocked(facturacion.registrarPago).mockResolvedValue({} as never);
+
+    render(<FacturaDetalleModal facturaId="f2" onClose={() => {}} onCambio={() => {}} />);
+    fireEvent.change(await screen.findByLabelText("Método"), { target: { value: "CASHEA" } });
+    expect(screen.getByText(/solo la parte que financia Cashea/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("N° de orden Cashea"), { target: { value: "CSH-12345" } });
+    fireEvent.click(screen.getByRole("button", { name: "Registrar pago" }));
+    await waitFor(() =>
+      expect(facturacion.registrarPago).toHaveBeenCalledWith("f2", {
+        metodoPago: "CASHEA",
+        referencia: "CSH-12345",
+        monto: 60,
+      })
+    );
+  });
 });

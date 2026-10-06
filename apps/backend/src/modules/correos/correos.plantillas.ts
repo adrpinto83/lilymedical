@@ -503,6 +503,7 @@ const METODO_PAGO: Record<string, string> = {
   TRANSFERENCIA: "Transferencia",
   PAGO_MOVIL: "Pago móvil",
   ZELLE: "Zelle",
+  CASHEA: "Cashea",
 };
 
 type Monto = number | string | { toString(): string };

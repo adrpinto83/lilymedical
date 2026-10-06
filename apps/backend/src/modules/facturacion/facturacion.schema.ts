@@ -37,7 +37,7 @@ export const crearFacturaSchema = z.object({
     }, "Una misma cita aparece dos veces en la factura"),
 });
 
-export const METODOS_PAGO = ["EFECTIVO", "TARJETA", "SEGURO", "TRANSFERENCIA", "PAGO_MOVIL", "ZELLE"] as const;
+export const METODOS_PAGO = ["EFECTIVO", "TARJETA", "SEGURO", "TRANSFERENCIA", "PAGO_MOVIL", "ZELLE", "CASHEA"] as const;
 
 // El monto se registra en dólares. Si se cobró en bolívares se envían
 // montoBs y tasaCambio, y el monto en dólares se calcula en el servidor.
