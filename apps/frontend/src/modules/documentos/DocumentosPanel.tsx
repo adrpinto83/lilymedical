@@ -89,7 +89,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   function accionesInforme(id: string, fechaActual: string, verPdf: () => void) {
     if (fechaEditando?.id === id) {
       return (
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <input
             type="date"
             aria-label="Nueva fecha del informe"
@@ -107,7 +107,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
       );
     }
     return (
-      <div className="flex shrink-0 gap-1">
+      <div className="flex flex-wrap gap-1 sm:shrink-0">
         <Button variant="ghost" onClick={() => setFechaEditando({ id, fecha: fechaActual })}>
           📅 Cambiar fecha
         </Button>
@@ -211,7 +211,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
           ) : (
             <ul className="divide-y divide-slate-100">
               {informes.map((i) => (
-                <li key={i.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <li key={i.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-slate-900">
                       {i.numeroInforme} <span className="font-normal text-slate-500">· {format(new Date(i.fecha), "dd/MM/yyyy")}</span>
@@ -248,7 +248,7 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                   .filter(Boolean)
                   .join(" · ");
                 return (
-                  <li key={ic.dia} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <li key={ic.dia} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900">
                         Informe del {format(new Date(fechaInforme + "T12:00:00"), "dd/MM/yyyy")}
