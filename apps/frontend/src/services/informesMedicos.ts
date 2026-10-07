@@ -11,8 +11,14 @@ export async function crearInformeMedico(payload: {
   pacienteId: string;
   informe: string;
   indicaciones?: string;
+  fecha?: string;
 }): Promise<InformeMedico> {
   const { data } = await api.post<InformeMedico>("/informes-medicos", payload);
+  return data;
+}
+
+export async function cambiarFechaInformeMedico(id: string, fecha: string): Promise<InformeMedico> {
+  const { data } = await api.put<InformeMedico>(`/informes-medicos/${id}/fecha`, { fecha });
   return data;
 }
 

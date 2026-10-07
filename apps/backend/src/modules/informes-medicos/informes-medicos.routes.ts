@@ -5,7 +5,7 @@ import { validateBody } from "../../middleware/validate";
 import { auditLog } from "../../middleware/auditLog";
 import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
-import { crearInformeSchema } from "./informes-medicos.schema";
+import { crearInformeSchema, cambiarFechaInformeSchema } from "./informes-medicos.schema";
 import * as informesService from "./informes-medicos.service";
 import { generarInformeMedicoPdf } from "./informes-medicos.pdf";
 
@@ -20,6 +20,10 @@ router.get("/paciente/:pacienteId", auditLog("VER"), async (req, res) => {
 
 router.post("/", auditLog("CREAR"), validateBody(crearInformeSchema), async (req, res) => {
   res.status(201).json(await informesService.crearInforme(req.user!.sub, req.body));
+});
+
+router.put("/:id/fecha", auditLog("EDITAR"), validateBody(cambiarFechaInformeSchema), async (req, res) => {
+  res.json(await informesService.cambiarFechaInforme(req.params.id, req.body.fecha));
 });
 
 router.get("/:id/pdf", auditLog("VER"), async (req, res) => {

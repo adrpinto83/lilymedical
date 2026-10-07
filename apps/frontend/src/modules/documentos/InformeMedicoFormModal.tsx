@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
-import { differenceInYears } from "date-fns";
+import { differenceInYears, format } from "date-fns";
 import { Modal } from "../../components/ui/Modal";
-import { Textarea } from "../../components/ui/Input";
+import { Input, Textarea } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { HistoriaClinica, Paciente } from "../../types";
 import { crearInformeMedico, abrirPdfInformeMedico } from "../../services/informesMedicos";
@@ -39,6 +39,7 @@ export function InformeMedicoFormModal({
 }) {
   const [informe, setInforme] = useState("");
   const [indicaciones, setIndicaciones] = useState("");
+  const [fecha, setFecha] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +47,7 @@ export function InformeMedicoFormModal({
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setFecha(format(new Date(), "yyyy-MM-dd"));
     Promise.all([obtenerPaciente(pacienteId), obtenerHistoriaPorPaciente(pacienteId).catch(() => null)])
       .then(([paciente, historia]) => {
         const borrador = borradorInforme(paciente, historia);
@@ -67,6 +69,7 @@ export function InformeMedicoFormModal({
         pacienteId,
         informe,
         indicaciones: indicaciones.trim() || undefined,
+        fecha,
       });
       onCreated();
       onClose();
@@ -85,6 +88,15 @@ export function InformeMedicoFormModal({
           Sale en el formato del talonario, con nombre, cédula, edad y fecha del paciente. Si el texto es largo, la
           letra se ajusta para que quepa en la hoja.
         </p>
+        <Input
+          id="informe-fecha"
+          label="Fecha del informe"
+          type="date"
+          required
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="max-w-xs"
+        />
         <Textarea
           id="informe-texto"
           label="Informe"

@@ -6,7 +6,11 @@ import { Receta, ConstanciaMedica, PlanEjercicios, InformeMedico } from "../../t
 import { listarRecetasPorPaciente, abrirPdfReceta } from "../../services/recetas";
 import { listarConstanciasPorPaciente, abrirPdfConstancia } from "../../services/constancias";
 import { listarPlanesPorPaciente, abrirPdfPlanEjercicios } from "../../services/planesEjercicios";
-import { listarInformesPorPaciente, abrirPdfInformeMedico } from "../../services/informesMedicos";
+import {
+  listarInformesPorPaciente,
+  abrirPdfInformeMedico,
+  cambiarFechaInformeMedico,
+} from "../../services/informesMedicos";
 import { getErrorMessage } from "../../services/api";
 import { enviarDocumentoPorCorreo, TipoDocumentoCorreo } from "../../services/correos";
 import { RecetaFormModal } from "./RecetaFormModal";
@@ -22,6 +26,8 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   const [planes, setPlanes] = useState<PlanEjercicios[]>([]);
   const [informes, setInformes] = useState<InformeMedico[]>([]);
   const [informeModalOpen, setInformeModalOpen] = useState(false);
+  // Informe al que se le está cambiando la fecha y la fecha nueva (AAAA-MM-DD).
+  const [fechaEditando, setFechaEditando] = useState<{ id: string; fecha: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recetaModalOpen, setRecetaModalOpen] = useState(false);
   const [constanciaModalOpen, setConstanciaModalOpen] = useState(false);
@@ -51,6 +57,18 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
         {enviandoId === id ? "Enviando..." : "✉️ Enviar por correo"}
       </Button>
     );
+  }
+
+  async function guardarFechaInforme() {
+    if (!fechaEditando) return;
+    setError(null);
+    try {
+      await cambiarFechaInformeMedico(fechaEditando.id, fechaEditando.fecha);
+      setFechaEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   }
 
   const cargar = useCallback(async () => {
@@ -151,9 +169,35 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                     </p>
                     <p className="truncate text-slate-500">{i.informe}</p>
                   </div>
-                  <Button variant="ghost" className="shrink-0" onClick={() => abrirPdfInformeMedico(i.id)}>
-                    Ver PDF
-                  </Button>
+                  {fechaEditando?.id === i.id ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <input
+                        type="date"
+                        aria-label="Nueva fecha del informe"
+                        className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                        value={fechaEditando.fecha}
+                        onChange={(e) => setFechaEditando({ id: i.id, fecha: e.target.value })}
+                      />
+                      <Button disabled={!fechaEditando.fecha} onClick={guardarFechaInforme}>
+                        Guardar
+                      </Button>
+                      <Button variant="ghost" onClick={() => setFechaEditando(null)}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setFechaEditando({ id: i.id, fecha: format(new Date(i.fecha), "yyyy-MM-dd") })}
+                      >
+                        📅 Cambiar fecha
+                      </Button>
+                      <Button variant="ghost" onClick={() => abrirPdfInformeMedico(i.id)}>
+                        Ver PDF
+                      </Button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
