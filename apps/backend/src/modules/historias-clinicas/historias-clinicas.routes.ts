@@ -3,9 +3,9 @@ import { requireAuth } from "../../middleware/auth";
 import { roleGuard } from "../../middleware/roleGuard";
 import { validateBody } from "../../middleware/validate";
 import { auditLog } from "../../middleware/auditLog";
-import { actualizarHistoriaSchema, crearEvaluacionSchema } from "./historias-clinicas.schema";
+import { actualizarHistoriaSchema, crearEvaluacionSchema, fechaInformeConsultaSchema } from "./historias-clinicas.schema";
 import * as historiasService from "./historias-clinicas.service";
-import { crearDocumentoPdf, enviarPdfComoRespuesta, fechaConsultorio } from "../../lib/pdf";
+import { crearDocumentoPdf, enviarPdfComoRespuesta } from "../../lib/pdf";
 import { construirMembrete } from "../perfil-medico/perfil-medico.service";
 import { obtenerMedicoTitular } from "../correos/correos.service";
 import { generarHistoriaClinicaPdf, generarInformeConsultaPdf } from "./historias-clinicas.pdf";
@@ -78,18 +78,38 @@ router.get("/paciente/:pacienteId/consulta/pdf", auditLog("VER"), async (req, re
   const evaluacionId = typeof req.query.evaluacionId === "string" ? req.query.evaluacionId : undefined;
   if (!sesionId === !evaluacionId) throw new HttpError(400, "Indica una sesión o una evaluación");
 
-  const consulta = await historiasService.obtenerConsultaParaPdf(
+  const consulta: historiasService.ConsultaParaPdf = await historiasService.obtenerConsultaParaPdf(
     req.params.pacienteId,
     sesionId ? { tipo: "sesion", id: sesionId } : { tipo: "evaluacion", id: evaluacionId! }
   );
+  // Desde Documentos sale con la fecha que el médico le puso al informe; desde
+  // la historia, con la de la consulta.
+  if (req.query.conFechaInforme === "true") {
+    consulta.fechaInforme = await historiasService.obtenerFechaInformeConsulta(consulta.historiaClinicaId, consulta.fecha);
+  }
   const medicoId = req.user!.rol === "MEDICO" ? req.user!.sub : (await obtenerMedicoTitular()).id;
   const membrete = await construirMembrete(medicoId);
   const doc = crearDocumentoPdf("CARTA", { bufferPages: true });
-  const dia = fechaConsultorio(consulta.fecha).split("/").reverse().join("-");
+  const dia = historiasService.diaConsultorio(consulta.fechaInforme ?? consulta.fecha);
   enviarPdfComoRespuesta(doc, res, `informe-consulta-${consulta.paciente.documento}-${dia}.pdf`);
   await generarInformeConsultaPdf(doc, consulta, membrete);
   doc.end();
 });
+
+// Informes de consulta para Documentos (uno por día) y su fecha editable.
+router.get("/paciente/:pacienteId/informes-consulta", soloMedico, auditLog("VER"), async (req, res) => {
+  res.json(await historiasService.listarInformesConsulta(req.params.pacienteId));
+});
+
+router.put(
+  "/paciente/:pacienteId/informes-consulta/fecha",
+  soloMedico,
+  auditLog("EDITAR"),
+  validateBody(fechaInformeConsultaSchema),
+  async (req, res) => {
+    res.json(await historiasService.cambiarFechaInformeConsulta(req.params.pacienteId, req.body.dia, req.body.fecha));
+  }
+);
 
 router.put(
   "/paciente/:pacienteId",

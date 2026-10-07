@@ -296,15 +296,16 @@ model HistoriaClinica {
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
-  paciente         Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
-  evaluaciones     EvaluacionFisiatrica[]
-  sesiones         Sesion[]
-  adjuntos         Adjunto[]
-  logsAcceso       LogAcceso[]
-  recetas          Receta[]
-  constancias      ConstanciaMedica[]
-  informesMedicos  InformeMedico[]
-  planesEjercicios PlanEjercicios[]
+  paciente              Paciente               @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  evaluaciones          EvaluacionFisiatrica[]
+  sesiones              Sesion[]
+  adjuntos              Adjunto[]
+  logsAcceso            LogAcceso[]
+  recetas               Receta[]
+  constancias           ConstanciaMedica[]
+  informesMedicos       InformeMedico[]
+  fechasInformeConsulta FechaInformeConsulta[]
+  planesEjercicios      PlanEjercicios[]
 
   @@map("historias_clinicas")
 }
@@ -924,4 +925,20 @@ model AvisoPortada {
   updatedAt   DateTime         @updatedAt
 
   @@map("avisos_portada")
+}
+
+// Fecha que el médico le pone al informe de una consulta (Documentos del
+// paciente) cuando lo necesita con otra fecha. La consulta en la historia
+// conserva su fecha real.
+model FechaInformeConsulta {
+  id                String   @id @default(uuid())
+  historiaClinicaId String
+  dia               String // día de la consulta en el consultorio, AAAA-MM-DD
+  fecha             DateTime
+  updatedAt         DateTime @updatedAt
+
+  historiaClinica HistoriaClinica @relation(fields: [historiaClinicaId], references: [id])
+
+  @@unique([historiaClinicaId, dia])
+  @@map("fechas_informe_consulta")
 }

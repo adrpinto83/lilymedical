@@ -99,6 +99,7 @@ export async function obtenerConsultaParaPdf(
   ]);
 
   return {
+    historiaClinicaId: historia.id,
     paciente: historia.paciente,
     ocupacion: historia.ocupacion,
     diagnosticoPrincipal: historia.diagnosticoPrincipal,
@@ -112,7 +113,93 @@ export async function obtenerConsultaParaPdf(
   };
 }
 
-export type ConsultaParaPdf = Awaited<ReturnType<typeof obtenerConsultaParaPdf>>;
+// Día del consultorio como AAAA-MM-DD (clave de la consulta en el informe).
+export function diaConsultorio(fecha: Date) {
+  return fechaConsultorio(fecha).split("/").reverse().join("-");
+}
+
+// Mediodía UTC: en Caracas (UTC-4) sigue siendo el mismo día del calendario.
+function mediodia(dia: string) {
+  return new Date(`${dia}T12:00:00Z`);
+}
+
+/**
+ * Informes de consulta del paciente para Documentos: uno por día con sesión
+ * (asistida) o evaluación, con la fecha que el médico le haya puesto al
+ * informe, si la cambió.
+ */
+export async function listarInformesConsulta(pacienteId: string) {
+  const historia = await prisma.historiaClinica.findUnique({
+    where: { pacienteId },
+    include: {
+      sesiones: { where: { asistencia: "ASISTIO" }, select: { id: true, fecha: true } },
+      evaluaciones: { select: { id: true, fecha: true } },
+      fechasInformeConsulta: true,
+    },
+  });
+  if (!historia) return [];
+
+  const fechasInforme = new Map(historia.fechasInformeConsulta.map((f) => [f.dia, f.fecha]));
+  const porDia = new Map<
+    string,
+    { dia: string; fechaConsulta: Date; sesiones: number; evaluaciones: number; sesionId?: string; evaluacionId?: string }
+  >();
+  const registros = [
+    ...historia.evaluaciones.map((e) => ({ ...e, tipo: "evaluacion" as const })),
+    ...historia.sesiones.map((s) => ({ ...s, tipo: "sesion" as const })),
+  ];
+  for (const r of registros) {
+    const dia = diaConsultorio(r.fecha);
+    const item = porDia.get(dia) ?? { dia, fechaConsulta: r.fecha, sesiones: 0, evaluaciones: 0 };
+    if (r.fecha < item.fechaConsulta) item.fechaConsulta = r.fecha;
+    if (r.tipo === "evaluacion") {
+      item.evaluaciones++;
+      item.evaluacionId ??= r.id;
+    } else {
+      item.sesiones++;
+      item.sesionId ??= r.id;
+    }
+    porDia.set(dia, item);
+  }
+
+  return [...porDia.values()]
+    .sort((a, b) => b.dia.localeCompare(a.dia))
+    .map(({ sesionId, evaluacionId, ...item }) => ({
+      ...item,
+      // La evaluación manda: es la misma consulta que imprime la historia.
+      referencia: evaluacionId ? { evaluacionId } : { sesionId: sesionId! },
+      fechaInforme: fechasInforme.get(item.dia) ?? null,
+    }));
+}
+
+export async function cambiarFechaInformeConsulta(pacienteId: string, dia: string, fecha: string | null) {
+  const historia = await prisma.historiaClinica.findUnique({ where: { pacienteId }, select: { id: true } });
+  if (!historia) throw new HttpError(404, "Historia clínica no encontrada");
+  const clave = { historiaClinicaId_dia: { historiaClinicaId: historia.id, dia } };
+  if (fecha === null) {
+    await prisma.fechaInformeConsulta.deleteMany({ where: { historiaClinicaId: historia.id, dia } });
+    return { dia, fechaInforme: null };
+  }
+  const guardada = await prisma.fechaInformeConsulta.upsert({
+    where: clave,
+    create: { historiaClinicaId: historia.id, dia, fecha: mediodia(fecha) },
+    update: { fecha: mediodia(fecha) },
+  });
+  return { dia, fechaInforme: guardada.fecha };
+}
+
+/** Fecha que el médico le puso al informe de esa consulta, si la cambió. */
+export async function obtenerFechaInformeConsulta(historiaClinicaId: string, fechaConsulta: Date) {
+  const guardada = await prisma.fechaInformeConsulta.findUnique({
+    where: { historiaClinicaId_dia: { historiaClinicaId, dia: diaConsultorio(fechaConsulta) } },
+  });
+  return guardada?.fecha ?? null;
+}
+
+export type ConsultaParaPdf = Awaited<ReturnType<typeof obtenerConsultaParaPdf>> & {
+  // Fecha puesta al informe desde Documentos; sin ella sale la de la consulta.
+  fechaInforme?: Date | null;
+};
 
 export async function actualizarHistoria(pacienteId: string, data: ActualizarHistoriaInput) {
   const historia = await prisma.historiaClinica.findUnique({ where: { pacienteId } });

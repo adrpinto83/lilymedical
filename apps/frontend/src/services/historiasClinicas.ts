@@ -77,3 +77,35 @@ export function imprimirInformeConsulta(pacienteId: string, referencia: Referenc
     "informe-consulta.pdf"
   );
 }
+
+export interface InformeConsulta {
+  dia: string; // AAAA-MM-DD, día de la consulta
+  fechaConsulta: string;
+  sesiones: number;
+  evaluaciones: number;
+  referencia: ReferenciaConsulta;
+  fechaInforme: string | null;
+}
+
+/** Informes de consulta del paciente (uno por día), para Documentos. */
+export async function listarInformesConsulta(pacienteId: string): Promise<InformeConsulta[]> {
+  const { data } = await api.get<InformeConsulta[]>(`/historias-clinicas/paciente/${pacienteId}/informes-consulta`);
+  return data;
+}
+
+/** Cambia la fecha con que sale el informe; null vuelve a la de la consulta. */
+export async function cambiarFechaInformeConsulta(pacienteId: string, dia: string, fecha: string | null) {
+  await api.put(`/historias-clinicas/paciente/${pacienteId}/informes-consulta/fecha`, { dia, fecha });
+}
+
+/** Informe de consulta desde Documentos: sale con la fecha puesta al informe. */
+export function abrirPdfInformeConsulta(pacienteId: string, referencia: ReferenciaConsulta): Promise<void> {
+  return abrirPdf(
+    () =>
+      descargarPdf(`/historias-clinicas/paciente/${pacienteId}/consulta/pdf`, {
+        ...referencia,
+        conFechaInforme: "true",
+      }),
+    "informe-consulta.pdf"
+  );
+}

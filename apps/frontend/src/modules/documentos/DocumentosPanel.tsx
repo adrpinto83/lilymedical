@@ -11,6 +11,12 @@ import {
   abrirPdfInformeMedico,
   cambiarFechaInformeMedico,
 } from "../../services/informesMedicos";
+import {
+  listarInformesConsulta,
+  cambiarFechaInformeConsulta,
+  abrirPdfInformeConsulta,
+  InformeConsulta,
+} from "../../services/historiasClinicas";
 import { getErrorMessage } from "../../services/api";
 import { enviarDocumentoPorCorreo, TipoDocumentoCorreo } from "../../services/correos";
 import { RecetaFormModal } from "./RecetaFormModal";
@@ -26,7 +32,9 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
   const [planes, setPlanes] = useState<PlanEjercicios[]>([]);
   const [informes, setInformes] = useState<InformeMedico[]>([]);
   const [informeModalOpen, setInformeModalOpen] = useState(false);
+  const [informesConsulta, setInformesConsulta] = useState<InformeConsulta[]>([]);
   // Informe al que se le está cambiando la fecha y la fecha nueva (AAAA-MM-DD).
+  // id: el del informe médico, o "consulta-<día>" para un informe de consulta.
   const [fechaEditando, setFechaEditando] = useState<{ id: string; fecha: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recetaModalOpen, setRecetaModalOpen] = useState(false);
@@ -63,7 +71,13 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
     if (!fechaEditando) return;
     setError(null);
     try {
-      await cambiarFechaInformeMedico(fechaEditando.id, fechaEditando.fecha);
+      const dia = fechaEditando.id.startsWith("consulta-") ? fechaEditando.id.slice("consulta-".length) : null;
+      if (dia) {
+        // Volver al día de la consulta quita la fecha puesta.
+        await cambiarFechaInformeConsulta(pacienteId, dia, fechaEditando.fecha === dia ? null : fechaEditando.fecha);
+      } else {
+        await cambiarFechaInformeMedico(fechaEditando.id, fechaEditando.fecha);
+      }
       setFechaEditando(null);
       await cargar();
     } catch (err) {
@@ -71,18 +85,53 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
     }
   }
 
+  // "Cambiar fecha" y "Ver PDF" de un informe, o el selector de fecha si se está cambiando.
+  function accionesInforme(id: string, fechaActual: string, verPdf: () => void) {
+    if (fechaEditando?.id === id) {
+      return (
+        <div className="flex shrink-0 items-center gap-2">
+          <input
+            type="date"
+            aria-label="Nueva fecha del informe"
+            className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+            value={fechaEditando.fecha}
+            onChange={(e) => setFechaEditando({ id, fecha: e.target.value })}
+          />
+          <Button disabled={!fechaEditando.fecha} onClick={guardarFechaInforme}>
+            Guardar
+          </Button>
+          <Button variant="ghost" onClick={() => setFechaEditando(null)}>
+            Cancelar
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex shrink-0 gap-1">
+        <Button variant="ghost" onClick={() => setFechaEditando({ id, fecha: fechaActual })}>
+          📅 Cambiar fecha
+        </Button>
+        <Button variant="ghost" onClick={verPdf}>
+          Ver PDF
+        </Button>
+      </div>
+    );
+  }
+
   const cargar = useCallback(async () => {
     try {
-      const [r, c, p, i] = await Promise.all([
+      const [r, c, p, i, ic] = await Promise.all([
         listarRecetasPorPaciente(pacienteId),
         listarConstanciasPorPaciente(pacienteId),
         listarPlanesPorPaciente(pacienteId),
         listarInformesPorPaciente(pacienteId),
+        listarInformesConsulta(pacienteId),
       ]);
       setRecetas(r);
       setConstancias(c);
       setPlanes(p);
       setInformes(i);
+      setInformesConsulta(ic);
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -169,37 +218,54 @@ export function DocumentosPanel({ pacienteId }: { pacienteId: string }) {
                     </p>
                     <p className="truncate text-slate-500">{i.informe}</p>
                   </div>
-                  {fechaEditando?.id === i.id ? (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <input
-                        type="date"
-                        aria-label="Nueva fecha del informe"
-                        className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
-                        value={fechaEditando.fecha}
-                        onChange={(e) => setFechaEditando({ id: i.id, fecha: e.target.value })}
-                      />
-                      <Button disabled={!fechaEditando.fecha} onClick={guardarFechaInforme}>
-                        Guardar
-                      </Button>
-                      <Button variant="ghost" onClick={() => setFechaEditando(null)}>
-                        Cancelar
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setFechaEditando({ id: i.id, fecha: format(new Date(i.fecha), "yyyy-MM-dd") })}
-                      >
-                        📅 Cambiar fecha
-                      </Button>
-                      <Button variant="ghost" onClick={() => abrirPdfInformeMedico(i.id)}>
-                        Ver PDF
-                      </Button>
-                    </div>
-                  )}
+                  {accionesInforme(i.id, format(new Date(i.fecha), "yyyy-MM-dd"), () => abrirPdfInformeMedico(i.id))}
                 </li>
               ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold text-slate-900">Informes de consulta</h2>
+          <p className="text-xs text-slate-500">
+            Uno por cada día con consulta en la historia. Cambiar la fecha solo afecta al informe impreso; la historia
+            conserva la fecha de la consulta.
+          </p>
+        </CardHeader>
+        <CardBody className="p-0">
+          {informesConsulta.length === 0 ? (
+            <p className="p-4 text-sm text-slate-500">Aún no hay consultas registradas en la historia.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {informesConsulta.map((ic) => {
+                const fechaInforme = ic.fechaInforme ? format(new Date(ic.fechaInforme), "yyyy-MM-dd") : ic.dia;
+                const detalle = [
+                  ic.evaluaciones > 0 && `${ic.evaluaciones} evaluación(es)`,
+                  ic.sesiones > 0 && `${ic.sesiones} sesión(es)`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <li key={ic.dia} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">
+                        Informe del {format(new Date(fechaInforme + "T12:00:00"), "dd/MM/yyyy")}
+                      </p>
+                      <p className="text-slate-500">
+                        {ic.fechaInforme
+                          ? `Consulta del ${format(new Date(ic.dia + "T12:00:00"), "dd/MM/yyyy")} · `
+                          : ""}
+                        {detalle}
+                      </p>
+                    </div>
+                    {accionesInforme(`consulta-${ic.dia}`, fechaInforme, () =>
+                      abrirPdfInformeConsulta(pacienteId, ic.referencia).catch((err) => setError(getErrorMessage(err)))
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardBody>

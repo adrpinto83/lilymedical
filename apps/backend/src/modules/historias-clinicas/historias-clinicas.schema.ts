@@ -59,3 +59,10 @@ export const crearEvaluacionSchema = z
 
 export type ActualizarHistoriaInput = z.infer<typeof actualizarHistoriaSchema>;
 export type CrearEvaluacionInput = z.infer<typeof crearEvaluacionSchema>;
+
+// Fecha del informe de una consulta (AAAA-MM-DD); null vuelve a la fecha de la consulta.
+const diaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
+export const fechaInformeConsultaSchema = z.object({
+  dia: diaSchema,
+  fecha: diaSchema.nullable(),
+});

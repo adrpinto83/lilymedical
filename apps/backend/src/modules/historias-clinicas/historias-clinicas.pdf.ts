@@ -394,9 +394,10 @@ export async function generarInformeConsultaPdf(
   membrete: Membrete
 ) {
   const p = consulta.paciente;
-  dibujarMembrete(doc, membrete, "Informe de consulta", p.documento, consulta.fecha);
+  const fecha = consulta.fechaInforme ?? consulta.fecha;
+  dibujarMembrete(doc, membrete, "Informe de consulta", p.documento, fecha);
   escribirIdentificacion(doc, p, consulta.ocupacion);
-  doc.text(`Fecha de la consulta: ${fechaConsultorio(consulta.fecha)}`);
+  doc.text(`${consulta.fechaInforme ? "Fecha" : "Fecha de la consulta"}: ${fechaConsultorio(fecha)}`);
   doc.moveDown(0.8);
 
   if (consulta.diagnosticoPrincipal) {
@@ -427,6 +428,6 @@ export async function generarInformeConsultaPdf(
   await dibujarPiePagina(doc, membrete);
   numerarPaginas(
     doc,
-    `Informe de consulta del ${fechaConsultorio(consulta.fecha)} · ${p.apellidos}, ${p.nombres} · C.I. ${p.documento}`
+    `Informe de consulta del ${fechaConsultorio(fecha)} · ${p.apellidos}, ${p.nombres} · C.I. ${p.documento}`
   );
 }
