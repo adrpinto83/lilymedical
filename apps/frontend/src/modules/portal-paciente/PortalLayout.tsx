@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import clsx from "clsx";
 import { EnlaceSitioWeb, LogoInicio } from "../../components/layout/Logo";
+import { CargandoPagina } from "../../components/CargandoPagina";
 import { useAuth } from "../../context/AuthContext";
 
 const navItems = [
@@ -56,7 +58,9 @@ export function PortalLayout() {
       </header>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-6">
-        <Outlet />
+        <Suspense fallback={<CargandoPagina />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="border-t border-slate-200 bg-white py-4">

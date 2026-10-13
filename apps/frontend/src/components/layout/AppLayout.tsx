@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import clsx from "clsx";
 import { EnlaceSitioWeb, LogoInicio } from "./Logo";
+import { CargandoPagina } from "../CargandoPagina";
 import { useAuth } from "../../context/AuthContext";
 import { ETIQUETA_ROL, RolUsuario } from "../../types";
 
@@ -111,7 +112,9 @@ export function AppLayout() {
         )}
 
         <main className="min-w-0 flex-1">
-          <Outlet />
+          <Suspense fallback={<CargandoPagina />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 
