@@ -2,6 +2,9 @@
 # portal del paciente (detrás de login) o datos que no deben indexarse.
 User-agent: *
 Allow: /$
+# Fotos de la galería de la portada: públicas, pueden salir en Google Imágenes.
+Allow: /api/galeria$
+Allow: /uploads/galeria/
 Disallow: /api/
 Disallow: /uploads/
 Disallow: /verificar/

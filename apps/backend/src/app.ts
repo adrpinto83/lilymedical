@@ -43,6 +43,17 @@ export function createApp() {
   // real. Confiar solo en loopback toma la IP que agrega el proxy local.
   app.set("trust proxy", process.env.TRUST_PROXY || "loopback");
 
+  // www.lilymedical.com.ve servía la misma portada que el dominio principal:
+  // para Google eran dos sitios con contenido duplicado. Se redirige con 301
+  // para que todo el posicionamiento quede en una sola dirección.
+  app.use((req, res, next) => {
+    const host = req.hostname;
+    if (host?.startsWith("www.")) {
+      return res.redirect(301, `https://${host.slice(4)}${req.originalUrl}`);
+    }
+    next();
+  });
+
   // Las miniaturas de estudios y los PDF a imprimir se muestran desde URLs
   // blob: (se bajan con el token y no por enlace directo): sin permitirlas,
   // el navegador las bloquea y las imágenes no se ven.
