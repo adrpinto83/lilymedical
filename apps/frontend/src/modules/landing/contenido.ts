@@ -44,8 +44,9 @@ export const contacto = {
   whatsapp: "584246773472",
   instagramUsuario: "@dra.fisya",
   instagramUrl: "https://www.instagram.com/dra.fisya/",
-  mapaUrl:
-    "https://www.google.com/maps/search/?api=1&query=C.C.+Novocentro+Av.+Stadium+Puerto+La+Cruz",
+  /** Perfil de empresa de Google ("Dra. Lilia Figuera, Médico Fisiatra"). Se
+   *  enlaza por su CID, que no cambia aunque se edite el nombre del perfil. */
+  mapaUrl: "https://maps.google.com/?cid=15451369183662854079",
 } as const;
 
 /** Horario referencial: ajustar al horario real de consulta. */
