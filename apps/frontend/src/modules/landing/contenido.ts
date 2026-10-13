@@ -13,9 +13,13 @@ export const doctora = {
   tagline: "Fisiatra en Puerto La Cruz",
   mpps: "73.766",
   cma: "6.576",
-  /** Foto grande del hero. Colocar en `public/dra-lilia.jpg`; si no existe se
-   *  muestra el retrato de Instagram (ver `instagram.avatar`) como respaldo. */
-  foto: "/dra-lilia.jpg",
+  /** Foto grande del hero. Mientras sea null se muestra el retrato de
+   *  Instagram (ver `instagram.avatar`). Al tenerla, copiarla a
+   *  `public/dra-lilia.jpg` y poner aquí "/dra-lilia.jpg". Se indica a mano y
+   *  no se detecta al cargar porque la portada se entrega ya escrita en HTML
+   *  (ver src/prerender.tsx): una foto ausente se vería rota hasta que cargue
+   *  el JavaScript. */
+  foto: null as string | null,
 } as const;
 
 /**

@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import fs from "fs";
 import path from "path";
 
 import authRoutes from "./modules/auth/auth.routes";
@@ -120,6 +121,13 @@ export function createApp() {
   // delante. En desarrollo la variable no se define y Vite sigue mandando.
   const frontendDir = process.env.FRONTEND_DIR;
   if (frontendDir) {
+    // La portada se compila ya escrita en HTML (portada.html) para buscadores y
+    // asistentes de IA que no ejecutan JavaScript. Solo se entrega en "/": en
+    // las demás rutas se vería la portada un instante antes de, p. ej., el login.
+    const portada = path.join(frontendDir, "portada.html");
+    if (fs.existsSync(portada)) {
+      app.get("/", (_req, res) => res.sendFile(portada));
+    }
     app.use(express.static(frontendDir));
     // Rutas del enrutador de React: cualquier GET que no sea API ni archivo
     // subido devuelve el index para que el SPA resuelva la navegación.

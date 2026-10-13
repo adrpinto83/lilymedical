@@ -8,7 +8,7 @@ vi.mock("../../services/galeria", () => ({
 vi.mock("../../services/avisosPortada", () => ({
   obtenerAvisoActivo: () => Promise.resolve(null),
 }));
-import { render, screen, within, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, within, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { LandingPage } from "./LandingPage";
 import { fotosGaleria } from "./fotos";
@@ -114,13 +114,8 @@ describe("LandingPage", () => {
     );
   });
 
-  it("usa el retrato de Instagram cuando la foto del hero todavía no existe", () => {
+  it("usa el retrato de Instagram mientras no hay foto del hero", () => {
     renderLanding();
-    const heroImg = screen.getByAltText(`${doctora.nombre}, ${doctora.titulo}`);
-    expect(heroImg).toHaveAttribute("src", doctora.foto);
-
-    fireEvent.error(heroImg);
-
     expect(screen.getByAltText(`${doctora.nombre}, ${doctora.titulo}`)).toHaveAttribute(
       "src",
       instagram.avatar

@@ -1,4 +1,7 @@
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("./lib/prisma", () => ({ prisma: {} }));
@@ -47,5 +50,36 @@ describe("redirección de www", () => {
   it("no toca el dominio principal", async () => {
     const res = await pedir("lilymedical.com.ve", "/health");
     expect(res.status).toBe(200);
+  });
+});
+
+describe("portada pregenerada", () => {
+  function pedirTexto(app: ReturnType<typeof createApp>, ruta: string) {
+    const servidor = app.listen(0);
+    const { port } = servidor.address() as { port: number };
+    return new Promise<string>((resolve, reject) => {
+      http
+        .get({ port, path: ruta }, (res) => {
+          let cuerpo = "";
+          res.on("data", (trozo) => (cuerpo += trozo));
+          res.on("end", () => resolve(cuerpo));
+        })
+        .on("error", reject);
+    }).finally(() => servidor.close());
+  }
+
+  it("entrega portada.html en / y el index vacío en las rutas del SPA", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lily-front-"));
+    fs.writeFileSync(path.join(dir, "index.html"), "SPA vacío");
+    fs.writeFileSync(path.join(dir, "portada.html"), "portada escrita");
+    vi.stubEnv("FRONTEND_DIR", dir);
+    try {
+      const app = createApp();
+      expect(await pedirTexto(app, "/")).toBe("portada escrita");
+      expect(await pedirTexto(app, "/login")).toBe("SPA vacío");
+    } finally {
+      vi.unstubAllEnvs();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

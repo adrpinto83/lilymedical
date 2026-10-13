@@ -29,9 +29,9 @@ const whatsappUrl = `https://wa.me/${contacto.whatsapp}?text=${encodeURIComponen
 
 /** Foto de la doctora con marcador de reemplazo si el archivo aún no se subió. */
 function FotoDoctora() {
-  const [sinFoto, setSinFoto] = useState(false);
+  const [sinFoto, setSinFoto] = useState(!doctora.foto);
 
-  if (sinFoto) {
+  if (sinFoto || !doctora.foto) {
     // Respaldo mientras no haya foto en alta resolución: el retrato del perfil
     // de Instagram, mostrado en círculo pequeño para no ampliar sus 150 px.
     return (
