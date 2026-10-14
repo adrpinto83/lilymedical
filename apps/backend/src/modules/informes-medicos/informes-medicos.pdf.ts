@@ -96,6 +96,9 @@ export async function generarInformeMedicoPdf(
   membrete: Membrete
 ) {
   const bloques: Bloque[] = [{ texto: informe.informe.trim() }];
+  if (informe.diagnostico?.trim()) {
+    bloques.push({ texto: "Diagnóstico:", titulo: true }, { texto: informe.diagnostico.trim() });
+  }
   if (informe.indicaciones?.trim()) {
     bloques.push({ texto: "Se plantea:", titulo: true }, { texto: informe.indicaciones.trim() });
   }

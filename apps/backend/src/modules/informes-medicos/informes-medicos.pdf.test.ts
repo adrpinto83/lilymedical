@@ -15,7 +15,7 @@ const paciente = {
 const paginas = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length;
 
 function informe(texto: string) {
-  return { fecha: new Date("2026-10-06T14:00:00Z"), paciente, informe: texto, indicaciones: "- Continuar con fisioterapia" } as never;
+  return { fecha: new Date("2026-10-06T14:00:00Z"), paciente, informe: texto, diagnostico: "Lumbalgia mecánica", indicaciones: "- Continuar con fisioterapia" } as never;
 }
 
 describe("PDF de informe médico", () => {

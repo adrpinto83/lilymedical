@@ -7,6 +7,7 @@ const fechaInforme = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
 export const crearInformeSchema = z.object({
   pacienteId: z.string().uuid(),
   informe: z.string().trim().min(1, "Escribe el informe"),
+  diagnostico: z.string().trim().optional(),
   indicaciones: z.string().trim().optional(),
   fecha: fechaInforme.optional(),
 });

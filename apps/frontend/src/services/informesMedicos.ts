@@ -10,6 +10,7 @@ export async function listarInformesPorPaciente(pacienteId: string): Promise<Inf
 export async function crearInformeMedico(payload: {
   pacienteId: string;
   informe: string;
+  diagnostico?: string;
   indicaciones?: string;
   fecha?: string;
 }): Promise<InformeMedico> {

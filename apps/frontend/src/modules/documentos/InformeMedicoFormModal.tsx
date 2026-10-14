@@ -11,19 +11,24 @@ import { getErrorMessage } from "../../services/api";
 
 /**
  * Borrador con la frase con que suelen empezar los informes a mano ("Se
- * trata de paciente masculino de 65 años de edad, quien acude con IDX: ...")
- * y el examen y plan de la historia, para que el médico solo lo ajuste.
+ * trata de paciente masculino de 65 años de edad, quien consulta por: ...")
+ * seguida de la enfermedad actual, y el examen, diagnóstico y plan de la
+ * historia, para que el médico solo lo ajuste.
  */
 export function borradorInforme(paciente: Paciente, historia: HistoriaClinica | null) {
   const sexo = paciente.sexo === "MASCULINO" ? "masculino" : paciente.sexo === "FEMENINO" ? "femenino" : "";
   const edad = differenceInYears(new Date(), new Date(paciente.fechaNacimiento.slice(0, 10) + "T12:00:00"));
   const partes = [
-    `Se trata de paciente${sexo ? ` ${sexo}` : ""} de ${edad} años de edad, quien acude con IDX: ${
-      historia?.diagnosticoPrincipal || "..."
-    }.`,
+    `Se trata de paciente${sexo ? ` ${sexo}` : ""} de ${edad} años de edad, quien consulta por: ${
+      historia?.enfermedadActual?.trim() || "..."
+    }`,
   ];
   if (historia?.examenFisico) partes.push(`Al examen físico: ${historia.examenFisico}`);
-  return { informe: partes.join("\n"), indicaciones: historia?.planTerapeutico ?? "" };
+  return {
+    informe: partes.join("\n"),
+    diagnostico: historia?.diagnosticoPrincipal ?? "",
+    indicaciones: historia?.planTerapeutico ?? "",
+  };
 }
 
 export function InformeMedicoFormModal({
@@ -38,6 +43,7 @@ export function InformeMedicoFormModal({
   pacienteId: string;
 }) {
   const [informe, setInforme] = useState("");
+  const [diagnostico, setDiagnostico] = useState("");
   const [indicaciones, setIndicaciones] = useState("");
   const [fecha, setFecha] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +58,12 @@ export function InformeMedicoFormModal({
       .then(([paciente, historia]) => {
         const borrador = borradorInforme(paciente, historia);
         setInforme(borrador.informe);
+        setDiagnostico(borrador.diagnostico);
         setIndicaciones(borrador.indicaciones);
       })
       .catch(() => {
         setInforme("");
+        setDiagnostico("");
         setIndicaciones("");
       });
   }, [open, pacienteId]);
@@ -68,6 +76,7 @@ export function InformeMedicoFormModal({
       const creado = await crearInformeMedico({
         pacienteId,
         informe,
+        diagnostico: diagnostico.trim() || undefined,
         indicaciones: indicaciones.trim() || undefined,
         fecha,
       });
@@ -104,6 +113,13 @@ export function InformeMedicoFormModal({
           rows={10}
           value={informe}
           onChange={(e) => setInforme(e.target.value)}
+        />
+        <Textarea
+          id="informe-diagnostico"
+          label="Diagnóstico (opcional)"
+          rows={2}
+          value={diagnostico}
+          onChange={(e) => setDiagnostico(e.target.value)}
         />
         <Textarea
           id="informe-indicaciones"

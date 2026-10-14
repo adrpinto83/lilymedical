@@ -20,6 +20,7 @@ export async function crearInforme(medicoId: string, data: CrearInformeInput) {
       historiaClinicaId: historia.id,
       medicoId,
       informe: data.informe,
+      diagnostico: data.diagnostico || null,
       indicaciones: data.indicaciones || null,
       ...(data.fecha ? { fecha: fechaDelDia(data.fecha) } : {}),
     },

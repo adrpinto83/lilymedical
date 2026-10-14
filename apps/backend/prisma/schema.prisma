@@ -841,6 +841,7 @@ model InformeMedico {
   historiaClinicaId String
   medicoId          String
   informe           String // cifrado en reposo
+  diagnostico       String? // IDX, va antes de "Se plantea"; cifrado en reposo
   indicaciones      String? // "Se plantea": conducta a seguir, cifrado en reposo
   fecha             DateTime @default(now())
   createdAt         DateTime @default(now())

@@ -314,6 +314,7 @@ export interface InformeMedico {
   numeroInforme: string;
   pacienteId: string;
   informe: string;
+  diagnostico?: string | null;
   indicaciones?: string | null;
   fecha: string;
   medico?: { nombre: string; apellido: string };

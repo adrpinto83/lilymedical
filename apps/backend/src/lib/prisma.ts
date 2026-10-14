@@ -16,7 +16,7 @@ const ENCRYPTED_FIELDS: Record<string, string[]> = {
   sesion: ["notaEvolucion", "tratamientoAplicado"],
   receta: ["diagnostico", "indicacionesGenerales"],
   constanciaMedica: ["diagnostico", "motivo"],
-  informeMedico: ["informe", "indicaciones"],
+  informeMedico: ["informe", "diagnostico", "indicaciones"],
   presupuesto: ["diagnostico"],
 };
 
